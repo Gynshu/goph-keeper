@@ -1,8 +1,7 @@
-package model
+package models
 
 import (
 	"github.com/gynshu-one/goph-keeper/server/pkg/utils"
-	"github.com/rs/zerolog/log"
 	"time"
 )
 
@@ -10,7 +9,7 @@ type ArbitraryText struct {
 	// ID is the primary key
 	ID string `json:"id" bson:"_id"`
 	// OwnerID is the user who owns this text
-	OwnerID int64 `json:"owner_id" bson:"owner_id"`
+	OwnerID string `json:"owner_id" bson:"owner_id"`
 	// Name is the name of the text
 	Name string `json:"name" bson:"name"`
 	// ArbitraryText is the text
@@ -43,4 +42,8 @@ func (a *ArbitraryText) DecryptAll(passphrase string) error {
 	a.Text = string(decryptedText)
 
 	return nil
+}
+
+func (a *ArbitraryText) GetOwnerID() string {
+	return a.OwnerID
 }

@@ -1,4 +1,4 @@
-package model
+package models
 
 import (
 	"time"
@@ -77,6 +77,11 @@ func (l *Login) DecryptAll(passphrase string) error {
 
 	return nil
 }
+
+func (l *Login) GetOwnerID() int64 {
+	return l.OwnerID
+}
+
 func (l *Login) RegisterOneTime(secret string) (oneTime string, genTime time.Time, err error) {
 	// Replace "your-secret-key" with your actual secret key
 	secretKey := []byte(secret)

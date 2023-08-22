@@ -1,4 +1,4 @@
-package model
+package models
 
 import (
 	"time"
@@ -19,7 +19,7 @@ type BankCard struct {
 	// ID is the primary key
 	ID string `json:"id" bson:"id"`
 	// OwnerID is the user who owns this text
-	OwnerID int64 `json:"owner_id" bson:"ownerID"`
+	OwnerID string `json:"owner_id" bson:"ownerID"`
 	// Name is the name of the bank
 	Name string `json:"name" bson:"name"`
 	// CardType is the type of card such as Visa, MasterCard, etc.
@@ -95,4 +95,8 @@ func (b *BankCard) DecryptAll(passphrase string) error {
 	b.CardExp = string(decryptedCardExp)
 
 	return nil
+}
+
+func (b *BankCard) GetOwnerID() string {
+	return b.OwnerID
 }

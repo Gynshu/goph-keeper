@@ -1,4 +1,4 @@
-package model
+package models
 
 import (
 	"github.com/gynshu-one/goph-keeper/server/pkg/utils"
@@ -9,7 +9,7 @@ type Binary struct {
 	// ID is the primary key
 	ID string `json:"id" bson:"_id"`
 	// OwnerID is the user who owns this binary
-	OwnerID int64 `json:"owner_id" bson:"owner_id"`
+	OwnerID string `json:"owner_id" bson:"owner_id"`
 	// Name is the name of the binary
 	Name string `json:"name" bson:"name"`
 	// Binary is the binary data
@@ -41,4 +41,8 @@ func (b *Binary) DecryptAll(passphrase string) error {
 	b.Binary = decryptedBinary
 
 	return nil
+}
+
+func (b *Binary) GetOwnerID() string {
+	return b.OwnerID
 }

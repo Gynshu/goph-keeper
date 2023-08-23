@@ -1,8 +1,10 @@
 package models
 
 import (
-	"github.com/gynshu-one/goph-keeper/server/pkg/utils"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/gynshu-one/goph-keeper/server/pkg/utils"
 )
 
 type ArbitraryText struct {
@@ -46,4 +48,28 @@ func (a *ArbitraryText) DecryptAll(passphrase string) error {
 
 func (a *ArbitraryText) GetOwnerID() string {
 	return a.OwnerID
+}
+
+func (a *ArbitraryText) GetDataID() string {
+	return a.ID
+}
+
+func (a *ArbitraryText) SetCreatedAt() {
+	a.CreatedAt = time.Now().Unix()
+}
+
+func (a *ArbitraryText) SetUpdatedAt() {
+	a.UpdatedAt = time.Now().Unix()
+}
+
+func (a *ArbitraryText) SetDeletedAt() {
+	a.DeletedAt = time.Now().Unix()
+}
+
+func (a *ArbitraryText) MakeID() {
+	a.ID = uuid.New().String()
+}
+
+func (a *ArbitraryText) GetType() string {
+	return TextType
 }

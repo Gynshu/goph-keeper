@@ -3,6 +3,7 @@ package models
 import (
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/gynshu-one/goph-keeper/server/pkg/utils"
 	"github.com/pquerna/otp/totp"
 	"github.com/rs/zerolog/log"
@@ -12,11 +13,13 @@ import (
 // All changes should be done through methods to ensure data consistency and update time
 type Login struct {
 	// string is the primary key
-	ID int64 `json:"id" bson:"_id"`
+	ID string `json:"id" bson:"_id"`
 	// OwnerID is the user who owns this text
-	OwnerID int64 `json:"owner_id" bson:"owner_id"`
+	OwnerID string `json:"owner_id" bson:"owner_id"`
 	// Name is the name of the login
 	Name string `json:"name" bson:"name"`
+	// Info is the additional info about the login
+	Info string `json:"info" bson:"info"`
 	// Username is the username
 	Username string `json:"username" bson:"username"`
 	// Password is the password
@@ -45,14 +48,16 @@ func (l *Login) EncryptAll(passphrase string) error {
 		return err
 	}
 	l.OneTimeOrigin = string(encryptedOneTimeOrigin)
-
+	encryptedInfo, err := utils.EncryptData([]byte(l.Info), passphrase)
+	if err != nil {
+		return err
+	}
+	l.Info = string(encryptedInfo)
 	encryptedRecoveryCodes, err := utils.EncryptData([]byte(l.RecoveryCodes), passphrase)
 	if err != nil {
 		return err
 	}
 	l.RecoveryCodes = string(encryptedRecoveryCodes)
-
-	l.UpdatedAt = time.Now().Unix()
 	return nil
 }
 
@@ -68,7 +73,11 @@ func (l *Login) DecryptAll(passphrase string) error {
 		return err
 	}
 	l.OneTimeOrigin = string(decryptedOneTimeOrigin)
-
+	decryptedInfo, err := utils.DecryptData([]byte(l.Info), passphrase)
+	if err != nil {
+		return err
+	}
+	l.Info = string(decryptedInfo)
 	decryptedRecoveryCodes, err := utils.DecryptData([]byte(l.RecoveryCodes), passphrase)
 	if err != nil {
 		return err
@@ -78,7 +87,7 @@ func (l *Login) DecryptAll(passphrase string) error {
 	return nil
 }
 
-func (l *Login) GetOwnerID() int64 {
+func (l *Login) GetOwnerID() string {
 	return l.OwnerID
 }
 
@@ -117,4 +126,28 @@ func (l *Login) GenerateOneTimePassword() (oneTime string, genTime time.Time, er
 func (l *Login) RegisterRecoveryCodes(recoveryCodes string) {
 	l.RecoveryCodes = recoveryCodes
 	l.UpdatedAt = time.Now().Unix()
+}
+
+func (l *Login) GetDataID() string {
+	return l.ID
+}
+
+func (l *Login) SetCreatedAt() {
+	l.CreatedAt = time.Now().Unix()
+}
+
+func (l *Login) SetUpdatedAt() {
+	l.UpdatedAt = time.Now().Unix()
+}
+
+func (l *Login) SetDeletedAt() {
+	l.DeletedAt = time.Now().Unix()
+}
+
+func (l *Login) MakeID() {
+	l.ID = uuid.New().String()
+}
+
+func (l *Login) GetType() string {
+	return LoginType
 }

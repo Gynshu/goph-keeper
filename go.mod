@@ -24,6 +24,8 @@ require (
 require (
 	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
 	github.com/gammazero/workerpool v1.1.3
+	github.com/go-chi/chi/v5 v5.0.10
+	github.com/google/uuid v1.3.1
 	github.com/halorium/env v1.0.0
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect

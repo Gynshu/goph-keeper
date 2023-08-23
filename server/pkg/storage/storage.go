@@ -16,7 +16,7 @@ var workers = workerpool.New(6)
 
 // Storage is a struct that holds a sync.Map to store all models.
 type storage struct {
-	db    mongo.Database
+	db    *mongo.Database
 	mu    *sync.RWMutex
 	cache map[string]models.UserData
 }
@@ -24,12 +24,13 @@ type storage struct {
 type Storage interface {
 	// Get returns the model with the given id.
 	Get(ctx context.Context, id string) (models.UserData, error)
+	GetUserData(ctx context.Context, userID string) ([]models.UserData, error)
 	Set(ctx context.Context, id string, data models.UserData) error
 	Delete(ctx context.Context, id string) error
 }
 
 // NewStorage returns a new Storage.
-func NewStorage(db mongo.Database) *storage {
+func NewStorage(db *mongo.Database) *storage {
 	return &storage{
 		db:    db,
 		mu:    &sync.RWMutex{},
@@ -63,7 +64,15 @@ func (s *storage) Get(ctx context.Context, id string) (models.UserData, error) {
 func (s *storage) Set(ctx context.Context, id string, data models.UserData) error {
 
 	s.mu.Lock()
-	s.cache[id] = data
+	_, ok := s.cache[id]
+	if !ok {
+		data.SetCreatedAt()
+		data.SetUpdatedAt()
+		s.cache[id] = data
+	} else {
+		data.SetUpdatedAt()
+		s.cache[id] = data
+	}
 	s.mu.Unlock()
 
 	var err error
@@ -81,11 +90,36 @@ func (s *storage) Set(ctx context.Context, id string, data models.UserData) erro
 
 // Delete deletes the model with the given id.
 func (s *storage) Delete(ctx context.Context, id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	_, ok := s.cache[id]
+
+	var err error
 	if !ok {
-		s.db.Collection("goph-keeper").DeleteOne(ctx, bson.M{"_id": id})
-		return ErrObjectMiss
+		workers.SubmitWait(func() {
+			s.db.Collection("goph-keeper").DeleteOne(ctx, bson.M{"_id": id})
+			err = ErrObjectMiss
+		})
 	}
 	delete(s.cache, id)
-	return nil
+	return err
+}
+
+func (s *storage) GetUserData(ctx context.Context, userID string) ([]models.UserData, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	var err error
+	var data []models.UserData
+	workers.SubmitWait(func() {
+		res, err := s.db.Collection("goph-keeper").Find(ctx, bson.M{"owner_id": userID})
+		if err != nil {
+			return
+		}
+		err = res.All(ctx, &data)
+		if err != nil {
+			return
+		}
+	})
+	return data, err
 }

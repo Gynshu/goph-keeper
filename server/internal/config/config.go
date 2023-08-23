@@ -11,7 +11,10 @@ var once = sync.Once{}
 
 type config struct {
 	// Server is the server configuration
-	MongoURI string `env:"MONGO_URI"`
+	MongoURI       string `env:"MONGO_URI"`
+	HttpServerPort string `env:"HTTP_SERVER_PORT"`
+	CertFilePath   string `env:"CERT_FILE_PATH"`
+	KeyFilePath    string `env:"KEY_FILE_PATH"`
 }
 
 // NewConfig creates a new configuration struct

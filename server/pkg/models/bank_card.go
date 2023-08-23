@@ -3,6 +3,7 @@ package models
 import (
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/gynshu-one/goph-keeper/server/pkg/utils"
 )
 
@@ -22,6 +23,8 @@ type BankCard struct {
 	OwnerID string `json:"owner_id" bson:"ownerID"`
 	// Name is the name of the bank
 	Name string `json:"name" bson:"name"`
+	// Info is the additional info about the card
+	Info string `json:"info" bson:"info"`
 	// CardType is the type of card such as Visa, MasterCard, etc.
 	CardType CardType `json:"card_type" bson:"cardType"`
 	// CardNum is the card number
@@ -53,6 +56,12 @@ func (b *BankCard) EncryptAll(passphrase string) error {
 	}
 	b.CardName = string(encryptedCardName)
 
+	encryptedInfo, err := utils.EncryptData([]byte(b.Info), passphrase)
+	if err != nil {
+		return err
+	}
+	b.Info = string(encryptedInfo)
+
 	encryptedCardCvv, err := utils.EncryptData([]byte(b.CardCvv), passphrase)
 	if err != nil {
 		return err
@@ -82,6 +91,12 @@ func (b *BankCard) DecryptAll(passphrase string) error {
 	}
 	b.CardName = string(decryptedCardName)
 
+	decryptedInfo, err := utils.DecryptData([]byte(b.Info), passphrase)
+	if err != nil {
+		return err
+	}
+	b.Info = string(decryptedInfo)
+
 	decryptedCardCvv, err := utils.DecryptData([]byte(b.CardCvv), passphrase)
 	if err != nil {
 		return err
@@ -99,4 +114,28 @@ func (b *BankCard) DecryptAll(passphrase string) error {
 
 func (b *BankCard) GetOwnerID() string {
 	return b.OwnerID
+}
+
+func (b *BankCard) GetDataID() string {
+	return b.ID
+}
+
+func (b *BankCard) SetCreatedAt() {
+	b.CreatedAt = time.Now().Unix()
+}
+
+func (b *BankCard) SetUpdatedAt() {
+	b.UpdatedAt = time.Now().Unix()
+}
+
+func (b *BankCard) SetDeletedAt() {
+	b.DeletedAt = time.Now().Unix()
+}
+
+func (b *BankCard) MakeID() {
+	b.ID = uuid.New().String()
+}
+
+func (b *BankCard) GetType() string {
+	return BankCardType
 }

@@ -1,8 +1,10 @@
 package models
 
 import (
-	"github.com/gynshu-one/goph-keeper/server/pkg/utils"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/gynshu-one/goph-keeper/server/pkg/utils"
 )
 
 type Binary struct {
@@ -12,6 +14,8 @@ type Binary struct {
 	OwnerID string `json:"owner_id" bson:"owner_id"`
 	// Name is the name of the binary
 	Name string `json:"name" bson:"name"`
+	// Info is the additional info about the binary
+	Info string `json:"info" bson:"info"`
 	// Binary is the binary data
 	Binary []byte `json:"binary" bson:"binary"`
 	// CreatedAt is the time when this binary was created
@@ -28,7 +32,11 @@ func (b *Binary) EncryptAll(passphrase string) error {
 		return err
 	}
 	b.Binary = encryptedBinary
-
+	encryptedInfo, err := utils.EncryptData([]byte(b.Info), passphrase)
+	if err != nil {
+		return err
+	}
+	b.Info = string(encryptedInfo)
 	b.UpdatedAt = time.Now().Unix()
 	return nil
 }
@@ -39,10 +47,38 @@ func (b *Binary) DecryptAll(passphrase string) error {
 		return err
 	}
 	b.Binary = decryptedBinary
-
+	decryptedInfo, err := utils.DecryptData([]byte(b.Info), passphrase)
+	if err != nil {
+		return err
+	}
+	b.Info = string(decryptedInfo)
 	return nil
 }
 
 func (b *Binary) GetOwnerID() string {
 	return b.OwnerID
+}
+
+func (b *Binary) GetDataID() string {
+	return b.ID
+}
+
+func (b *Binary) SetCreatedAt() {
+	b.CreatedAt = time.Now().Unix()
+}
+
+func (b *Binary) SetUpdatedAt() {
+	b.UpdatedAt = time.Now().Unix()
+}
+
+func (b *Binary) SetDeletedAt() {
+	b.DeletedAt = time.Now().Unix()
+}
+
+func (b *Binary) MakeID() {
+	b.ID = uuid.New().String()
+}
+
+func (b *Binary) GetType() string {
+	return BinaryType
 }

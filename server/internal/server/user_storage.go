@@ -14,9 +14,9 @@ import (
 type UserKeeper interface {
 	CreateUser(ctx context.Context, user models.User) error
 
-	SetUserData(ctx context.Context, dataID, userID, secret string, data models.UserData) error
+	SetUserData(ctx context.Context, dataID, secret string, data models.UserData) error
 
-	GetUserData(ctx context.Context, dataID, userID, secret string) (*models.UserData, error)
+	GetUserData(ctx context.Context, dataID, secret string) (*models.UserData, error)
 }
 
 type userStorage struct {
@@ -93,6 +93,8 @@ func (s *userStorage) GetUserData(ctx context.Context, dataID, secret string) (*
 	if !ok {
 		return nil, ErrInvalidSecret
 	}
+
+	data.DecryptAll(secret)
 
 	return &data, nil
 }

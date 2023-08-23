@@ -1,15 +1,15 @@
 package router
 
 import (
+	"github.com/gynshu-one/goph-keeper/server/api/handlers"
+	"github.com/gynshu-one/goph-keeper/server/api/middlewares"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/gynshu-one/goph-keeper/server/internal/middlewares"
-	"github.com/gynshu-one/goph-keeper/server/internal/server"
 )
 
-func NewRouter(handlers server.Handlers) *chi.Mux {
+func NewRouter(handlers handlers.Handlers) *chi.Mux {
 	// New Chi router
 	r := chi.NewRouter()
 

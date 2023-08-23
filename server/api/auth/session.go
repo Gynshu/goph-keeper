@@ -6,8 +6,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/gynshu-one/goph-keeper/server/internal/utils"
-	utils2 "github.com/gynshu-one/goph-keeper/server/pkg/utils"
 )
 
 var Sessions SessionManager
@@ -15,7 +13,7 @@ var Sessions SessionManager
 type SessionManager interface {
 	// CreateSession creates a new session for a user
 	// returns a session ID and an error if something went wrong
-	CreateSession(userID string, masterKey string) (*Session, error)
+	CreateSession(userID string) (*Session, error)
 
 	// GetSession returns a session for a given session ID
 	// returns an error if something went wrong
@@ -48,16 +46,7 @@ func NewSessionManager() SessionManager {
 
 // CreateSession creates a new session for a user
 // returns a session ID and an error if something went wrong
-func (s *sessionManager) CreateSession(userID string, masterKey string) (*Session, error) {
-	key, err := utils.GenerateMasterKeyForUser()
-	if err != nil {
-		return nil, err
-	}
-	master, err := utils2.EncryptData([]byte(masterKey), key)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *sessionManager) CreateSession(userID string) (*Session, error) {
 	if userID == "" {
 		return nil, errors.New("user id is empty")
 	}
@@ -65,8 +54,6 @@ func (s *sessionManager) CreateSession(userID string, masterKey string) (*Sessio
 	session := Session{
 		ID:        uuid.New().String(),
 		userID:    userID,
-		masterKey: master,
-		key:       key,
 		createdAt: time.Now(),
 	}
 	s.mu.Lock()
@@ -133,21 +120,7 @@ func (s *sessionManager) DeleteAllSessions(userID string) error {
 type Session struct {
 	ID        string `json:"id" bson:"_id"`
 	userID    string
-	masterKey []byte
-	key       string
 	createdAt time.Time
-}
-
-func (s *Session) GetMasterKey() (string, error) {
-	if s.masterKey == nil {
-		return "", errors.New("master key is not set")
-	}
-	master, err := utils2.DecryptData(s.masterKey, s.key)
-	if err != nil {
-		return "", err
-	}
-
-	return string(master), nil
 }
 
 func (s *Session) GetUserID() string {

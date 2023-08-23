@@ -3,6 +3,7 @@ module github.com/gynshu-one/goph-keeper
 go 1.21.0
 
 require (
+	github.com/go-resty/resty/v2 v2.7.0
 	github.com/pquerna/otp v1.4.0
 	github.com/rs/zerolog v1.30.0
 )
@@ -17,6 +18,7 @@ require (
 	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d // indirect
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d // indirect
+	golang.org/x/net v0.0.0-20220722155237-a158d28d115b // indirect
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4 // indirect
 	golang.org/x/text v0.7.0 // indirect
 )

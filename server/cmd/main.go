@@ -2,19 +2,19 @@ package main
 
 import (
 	"context"
+	auth "github.com/gynshu-one/goph-keeper/server/api/auth"
+	server "github.com/gynshu-one/goph-keeper/server/api/handlers"
+	"github.com/gynshu-one/goph-keeper/server/api/router"
+	"github.com/gynshu-one/goph-keeper/server/config"
+	"github.com/gynshu-one/goph-keeper/server/storage"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
-	auth "github.com/gynshu-one/goph-keeper/server/internal/auth"
-	"github.com/gynshu-one/goph-keeper/server/internal/config"
-	router "github.com/gynshu-one/goph-keeper/server/internal/router"
-	server "github.com/gynshu-one/goph-keeper/server/internal/server"
-	"github.com/gynshu-one/goph-keeper/server/pkg/storage"
 	"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/mongo"
-	options "go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func main() {
@@ -36,10 +36,10 @@ func main() {
 	db := client.Database("goph-keeper")
 
 	// init storage
-	storage := storage.NewStorage(db)
+	newStorage := storage.NewStorage(db)
 
 	// init handlers
-	handlers := server.NewHandlers(db, storage)
+	handlers := server.NewHandlers(db, newStorage)
 
 	// init sessions
 	auth.Sessions = auth.NewSessionManager()

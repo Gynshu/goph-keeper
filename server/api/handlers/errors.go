@@ -1,9 +1,10 @@
-package server
+package handlers
 
 import "errors"
 
 var (
 	// ErrInvalidLogin is returned when the login is invalid
+	ErrUserIDIsEmpty     = errors.New("user id is empty")
 	ErrInvalidLogin      = errors.New("invalid login")
 	ErrInvalidSecret     = errors.New("invalid secret")
 	ErrObjectMiss        = errors.New("object miss")

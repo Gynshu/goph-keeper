@@ -1,10 +1,10 @@
 package models
 
 import (
+	"github.com/gynshu-one/goph-keeper/shared/utils"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/gynshu-one/goph-keeper/server/pkg/utils"
 )
 
 type Binary struct {
@@ -26,6 +26,7 @@ type Binary struct {
 	DeletedAt int64 `json:"deleted_at" bson:"deleted_at"`
 }
 
+// EncryptAll encrypts all sensitive data
 func (b *Binary) EncryptAll(passphrase string) error {
 	encryptedBinary, err := utils.EncryptData(b.Binary, passphrase)
 	if err != nil {
@@ -41,6 +42,7 @@ func (b *Binary) EncryptAll(passphrase string) error {
 	return nil
 }
 
+// DecryptAll decrypts all sensitive data
 func (b *Binary) DecryptAll(passphrase string) error {
 	decryptedBinary, err := utils.DecryptData(b.Binary, passphrase)
 	if err != nil {
@@ -55,12 +57,13 @@ func (b *Binary) DecryptAll(passphrase string) error {
 	return nil
 }
 
+// GetOwnerID returns the owner id
 func (b *Binary) GetOwnerID() string {
 	return b.OwnerID
 }
 
-func (b *Binary) GetDataID() string {
-	return b.ID
+func (b *Binary) GetDataID() UserDataID {
+	return UserDataID(b.ID)
 }
 
 func (b *Binary) SetCreatedAt() {
@@ -79,6 +82,6 @@ func (b *Binary) MakeID() {
 	b.ID = uuid.New().String()
 }
 
-func (b *Binary) GetType() string {
+func (b *Binary) GetType() UserDataType {
 	return BinaryType
 }

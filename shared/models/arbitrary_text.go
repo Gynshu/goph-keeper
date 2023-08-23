@@ -1,10 +1,10 @@
 package models
 
 import (
+	"github.com/gynshu-one/goph-keeper/shared/utils"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/gynshu-one/goph-keeper/server/pkg/utils"
 )
 
 type ArbitraryText struct {
@@ -50,8 +50,8 @@ func (a *ArbitraryText) GetOwnerID() string {
 	return a.OwnerID
 }
 
-func (a *ArbitraryText) GetDataID() string {
-	return a.ID
+func (a *ArbitraryText) GetDataID() UserDataID {
+	return UserDataID(a.ID)
 }
 
 func (a *ArbitraryText) SetCreatedAt() {
@@ -70,6 +70,6 @@ func (a *ArbitraryText) MakeID() {
 	a.ID = uuid.New().String()
 }
 
-func (a *ArbitraryText) GetType() string {
+func (a *ArbitraryText) GetType() UserDataType {
 	return TextType
 }

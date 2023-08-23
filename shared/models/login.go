@@ -1,10 +1,10 @@
 package models
 
 import (
+	"github.com/gynshu-one/goph-keeper/shared/utils"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/gynshu-one/goph-keeper/server/pkg/utils"
 	"github.com/pquerna/otp/totp"
 	"github.com/rs/zerolog/log"
 )
@@ -36,6 +36,7 @@ type Login struct {
 	DeletedAt int64 `json:"deleted_at" bson:"deleted_at"`
 }
 
+// EncryptAll encrypts all sensitive data
 func (l *Login) EncryptAll(passphrase string) error {
 	encryptedPassword, err := utils.EncryptData([]byte(l.Password), passphrase)
 	if err != nil {
@@ -61,6 +62,7 @@ func (l *Login) EncryptAll(passphrase string) error {
 	return nil
 }
 
+// DecryptAll decrypts all the sensitive data
 func (l *Login) DecryptAll(passphrase string) error {
 	decryptedPassword, err := utils.DecryptData([]byte(l.Password), passphrase)
 	if err != nil {
@@ -87,10 +89,12 @@ func (l *Login) DecryptAll(passphrase string) error {
 	return nil
 }
 
+// GetOwnerID returns the owner id
 func (l *Login) GetOwnerID() string {
 	return l.OwnerID
 }
 
+// RegisterOneTime registers a new one-time password
 func (l *Login) RegisterOneTime(secret string) (oneTime string, genTime time.Time, err error) {
 	// Replace "your-secret-key" with your actual secret key
 	secretKey := []byte(secret)
@@ -114,6 +118,8 @@ func (l *Login) RegisterOneTime(secret string) (oneTime string, genTime time.Tim
 	l.UpdatedAt = time.Now().Unix()
 	return l.GenerateOneTimePassword()
 }
+
+// GenerateOneTimePassword generates a new one-time password
 func (l *Login) GenerateOneTimePassword() (oneTime string, genTime time.Time, err error) {
 	start := time.Now()
 	key, err := totp.GenerateCode(l.OneTimeOrigin, start)
@@ -123,31 +129,39 @@ func (l *Login) GenerateOneTimePassword() (oneTime string, genTime time.Time, er
 	}
 	return key, start, nil
 }
+
+// RegisterRecoveryCodes registers a new recovery code
 func (l *Login) RegisterRecoveryCodes(recoveryCodes string) {
 	l.RecoveryCodes = recoveryCodes
 	l.UpdatedAt = time.Now().Unix()
 }
 
-func (l *Login) GetDataID() string {
-	return l.ID
+// GetDataID  returns the data id
+func (l *Login) GetDataID() UserDataID {
+	return UserDataID(l.ID)
 }
 
+// SetCreatedAt sets the created at time
 func (l *Login) SetCreatedAt() {
 	l.CreatedAt = time.Now().Unix()
 }
 
+// SetUpdatedAt sets the updated at time
 func (l *Login) SetUpdatedAt() {
 	l.UpdatedAt = time.Now().Unix()
 }
 
+// SetDeletedAt sets the deleted at time
 func (l *Login) SetDeletedAt() {
 	l.DeletedAt = time.Now().Unix()
 }
 
+// MakeID generates a new id
 func (l *Login) MakeID() {
 	l.ID = uuid.New().String()
 }
 
-func (l *Login) GetType() string {
+// GetType returns the type of the data
+func (l *Login) GetType() UserDataType {
 	return LoginType
 }

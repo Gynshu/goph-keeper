@@ -3,10 +3,10 @@ package storage
 import (
 	"context"
 	"errors"
+	"github.com/gynshu-one/goph-keeper/shared/models"
 	"sync"
 
 	"github.com/gammazero/workerpool"
-	"github.com/gynshu-one/goph-keeper/server/pkg/models"
 	"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -18,15 +18,15 @@ var workers = workerpool.New(6)
 type storage struct {
 	db    *mongo.Database
 	mu    *sync.RWMutex
-	cache map[string]models.UserData
+	cache map[models.UserDataID]models.UserData
 }
 
 type Storage interface {
 	// Get returns the model with the given id.
-	Get(ctx context.Context, id string) (models.UserData, error)
+	Get(ctx context.Context, id models.UserDataID) (models.UserData, error)
 	GetUserData(ctx context.Context, userID string) ([]models.UserData, error)
-	Set(ctx context.Context, id string, data models.UserData) error
-	Delete(ctx context.Context, id string) error
+	Set(ctx context.Context, id models.UserDataID, data models.UserData) error
+	Delete(ctx context.Context, id models.UserDataID) error
 }
 
 // NewStorage returns a new Storage.
@@ -34,12 +34,12 @@ func NewStorage(db *mongo.Database) *storage {
 	return &storage{
 		db:    db,
 		mu:    &sync.RWMutex{},
-		cache: make(map[string]models.UserData),
+		cache: make(map[models.UserDataID]models.UserData),
 	}
 }
 
 // Get returns the model with the given id.
-func (s *storage) Get(ctx context.Context, id string) (models.UserData, error) {
+func (s *storage) Get(ctx context.Context, id models.UserDataID) (models.UserData, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -53,7 +53,10 @@ func (s *storage) Get(ctx context.Context, id string) (models.UserData, error) {
 				err = ErrObjectMiss
 				return
 			}
-			res.Decode(&data)
+			err = res.Decode(&data)
+			if err != nil {
+				return
+			}
 		})
 	}
 
@@ -61,7 +64,7 @@ func (s *storage) Get(ctx context.Context, id string) (models.UserData, error) {
 }
 
 // Set sets the model with the given id.
-func (s *storage) Set(ctx context.Context, id string, data models.UserData) error {
+func (s *storage) Set(ctx context.Context, id models.UserDataID, data models.UserData) error {
 
 	s.mu.Lock()
 	_, ok := s.cache[id]
@@ -89,7 +92,7 @@ func (s *storage) Set(ctx context.Context, id string, data models.UserData) erro
 }
 
 // Delete deletes the model with the given id.
-func (s *storage) Delete(ctx context.Context, id string) error {
+func (s *storage) Delete(ctx context.Context, id models.UserDataID) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	_, ok := s.cache[id]

@@ -1,10 +1,10 @@
 package models
 
 import (
+	"github.com/gynshu-one/goph-keeper/shared/utils"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/gynshu-one/goph-keeper/server/pkg/utils"
 )
 
 type CardType string
@@ -116,8 +116,8 @@ func (b *BankCard) GetOwnerID() string {
 	return b.OwnerID
 }
 
-func (b *BankCard) GetDataID() string {
-	return b.ID
+func (b *BankCard) GetDataID() UserDataID {
+	return UserDataID(b.ID)
 }
 
 func (b *BankCard) SetCreatedAt() {
@@ -136,6 +136,6 @@ func (b *BankCard) MakeID() {
 	b.ID = uuid.New().String()
 }
 
-func (b *BankCard) GetType() string {
+func (b *BankCard) GetType() UserDataType {
 	return BankCardType
 }

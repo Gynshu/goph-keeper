@@ -1,9 +1,8 @@
 package middlewares
 
 import (
+	auth "github.com/gynshu-one/goph-keeper/server/api/auth"
 	"net/http"
-
-	auth "github.com/gynshu-one/goph-keeper/server/internal/auth"
 )
 
 func SessionCheck(next http.Handler) http.Handler {
@@ -21,9 +20,3 @@ func SessionCheck(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
-
-// func NewSessionCheck(next http.Handler) http.Handler {
-// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-// 	})
-// }

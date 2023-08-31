@@ -1,8 +1,9 @@
 package config
 
 import (
-	"github.com/halorium/env"
+	"encoding/json"
 	"github.com/rs/zerolog/log"
+	"os"
 	"sync"
 )
 
@@ -11,20 +12,37 @@ var once = sync.Once{}
 
 type config struct {
 	// Server is the server configuration
-	MongoURI       string `env:"MONGO_URI"`
-	HttpServerPort string `env:"HTTP_SERVER_PORT"`
-	CertFilePath   string `env:"CERT_FILE_PATH"`
-	KeyFilePath    string `env:"KEY_FILE_PATH"`
+	MongoURI       string `json:"MONGO_URI"`
+	HttpServerPort string `json:"HTTP_SERVER_PORT"`
+	CertFilePath   string `json:"CERT_FILE_PATH"`
+	KeyFilePath    string `json:"KEY_FILE_PATH"`
 }
 
 // NewConfig creates a new configuration struct
 func newConfig() error {
 	instance = &config{}
 
-	err := env.Unmarshal(instance)
+	pwd, err := os.Getwd()
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to unmarshal config")
+		log.Fatal().Err(err).Msg("Failed to get current working directory")
 	}
+
+	// open json file
+	file, err := os.Open(pwd + "/server/config.json")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to open config file")
+	}
+	defer file.Close()
+
+	// decode json into struct
+	decoder := json.NewDecoder(file)
+	err = decoder.Decode(instance)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to decode config")
+	}
+
+	instance.CertFilePath = pwd + "/" + instance.CertFilePath
+	instance.KeyFilePath = pwd + "/" + instance.KeyFilePath
 	return nil
 }
 

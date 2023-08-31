@@ -4,33 +4,33 @@ type UserData interface {
 	EncryptAll(passphrase string) error
 	DecryptAll(passphrase string) error
 
-	GetOwnerID() string
+	// GetOwnerID Returns the ownerID of the data
+	// if id is not nil !!, it will be set to the ownerID
+	GetOwnerID(id *string) string
 	GetDataID() UserDataID
 
 	MakeID()
 	SetUpdatedAt()
-	SetDeletedAt()
 	SetCreatedAt()
 
 	GetType() UserDataType
 }
 
 type UserDataType string
+type UserDataID string
+
+type PackedUserData map[UserDataType][]UserData
 
 var UserDataTypes = []UserDataType{
-	TextType,
+	ArbitraryTextType,
 	BankCardType,
 	BinaryType,
 	LoginType,
 }
 
-type UserDataID string
-
-type PackedUserData map[UserDataType]map[UserDataID]UserData
-
 const (
-	TextType     = UserDataType("text")
-	BankCardType = UserDataType("bank_card")
-	BinaryType   = UserDataType("binary")
-	LoginType    = UserDataType("login")
+	ArbitraryTextType = UserDataType("text")
+	BankCardType      = UserDataType("bank_card")
+	BinaryType        = UserDataType("binary")
+	LoginType         = UserDataType("login")
 )

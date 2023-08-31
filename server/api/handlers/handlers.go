@@ -7,7 +7,6 @@ import (
 	"github.com/gynshu-one/goph-keeper/server/api/utils"
 	"github.com/gynshu-one/goph-keeper/server/storage"
 	"github.com/gynshu-one/goph-keeper/shared/models"
-	utils2 "github.com/gynshu-one/goph-keeper/shared/utils"
 	"net/http"
 	"time"
 
@@ -16,33 +15,18 @@ import (
 )
 
 type Handlers interface {
-	// CreateUser creates a new user
-	// hashes it and stores to database, returns an error if something went wrong
 	CreateUser(w http.ResponseWriter, r *http.Request)
 
-	// LoginUser logs in a user
-	// returns a session ID and an error if something went wrong
 	LoginUser(w http.ResponseWriter, r *http.Request)
 
-	// LogoutUser logs out a user and deletes the session
-	// returns an error if something went wrong
 	LogoutUser(w http.ResponseWriter, r *http.Request)
 
-	// SetUserData sets (creates or updates)
-	// the data and its type must be passed to the request through
-	// "data" and "type" parameters respectively  all data should be encrypted
 	SetUserData(w http.ResponseWriter, r *http.Request)
 
-	// GetUserData returns the data for a user
-	// the data id must be passed to the request through "id" parameter
 	GetUserData(w http.ResponseWriter, r *http.Request)
 
-	// DeleteUserData deletes the data for a user
 	DeleteUserData(w http.ResponseWriter, r *http.Request)
 
-	// SyncUserData syncs the data for a user
-	// server will return all data client have on server
-	// mapped by type slice of structs e.g. map[string][]models.UserData
 	SyncUserData(w http.ResponseWriter, r *http.Request)
 }
 
@@ -58,6 +42,15 @@ func NewHandlers(db *mongo.Database, storage storage.Storage) *handler {
 	}
 }
 
+// CreateUser creates a new user
+// hashes it and stores to database
+// user must pass email as "email" and password as "password" url parameters (GET request)
+// {"email": "email", "password": "password"}
+// This would register a new user and create a 24-hour session
+// https request example:
+// https://localhost:8080/user/create?email=tig.arsenyan@gmail.com&password=password
+//
+//	in response you will get a session_id cookie and Authorization header with session id
 func (h *handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 
@@ -81,6 +74,10 @@ func (h *handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	// Hash master key (no salt and pepper for now)
 	user.Passphrase = utils.HashMasterKey(password)
+
+	// clean mem
+	password = utils.GenRandomString(len(password) + 1)
+
 	user.CreatedAt = time.Now().Unix()
 	user.UpdatedAt = time.Now().Unix()
 
@@ -96,13 +93,26 @@ func (h *handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Don't forget to create a session for the user
-	_, err = auth.Sessions.CreateSession(user.Email)
+	session, err := auth.Sessions.CreateSession(user.Email)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// header
+	w.Header().Set("Authorization", "Bearer "+session.ID)
+	// cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:  "session_id",
+		Value: session.ID,
+	})
+	w.Write([]byte(session.ID))
 }
 
+// LoginUser logs in a user
+// returns a session ID and an error if something went wrong
+// user must pass email as "email" and password as "password" url parameters (GET request)
+// in response you will get a session_id cookie and Authorization header with session id
 func (h *handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 
@@ -116,7 +126,7 @@ func (h *handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.db.Collection("users").FindOne(r.Context(), bson.M{"email": email}).Decode(&user)
+	err := h.db.Collection("users").FindOne(r.Context(), bson.M{"_id": email}).Decode(&user)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			http.Error(w, "user not found", http.StatusBadRequest)
@@ -136,71 +146,110 @@ func (h *handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// clean mem
+	password = utils.GenRandomString(len(password) + 1)
+
 	session, err := auth.Sessions.CreateSession(user.Email)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	// header
+	w.Header().Set("Authorization", "Bearer "+session.ID)
+	// cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:  "session_id",
+		Value: session.ID,
+	})
 	w.Write([]byte(session.ID))
 }
 
+// LogoutUser logs out a user
+// user must pass session_id as "session_id" url parameter (GET request)
 func (h *handler) LogoutUser(w http.ResponseWriter, r *http.Request) {
-	sessionID := r.FormValue("sessionID")
-
-	err := auth.Sessions.DeleteSession(sessionID)
+	sessionID, err := r.Cookie("session_id")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	err = auth.Sessions.DeleteSession(sessionID.Value)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
 
+// SetUserData sets (creates or updates)
+// Data should be encrypted and passed as json
+// {		"type: "login",
+//
+//		"data: {
+//		"type": "login",
+//		"owner_id": "email",
+//		"name": "login item name",
+//		"info": "login item info",
+//		"username": "username",
+//		"password": "password",
+//		"one_time_origin": "one time origin if exists"
+//	}
 func (h *handler) SetUserData(w http.ResponseWriter, r *http.Request) {
+	session, err := FindSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	tp := models.UserDataType(r.FormValue("type"))
-	if tp == "" {
-		http.Error(w, "type is empty", http.StatusBadRequest)
-	}
-	inputData := r.FormValue("data")
-	if inputData == "" {
-		http.Error(w, "data is empty", http.StatusBadRequest)
-	}
 
+	decoder := json.NewDecoder(r.Body)
+	defer r.Body.Close()
+
+	// Refuse to receive unknown type
+	decoder.DisallowUnknownFields()
 	var data models.UserData
 
 	switch tp {
 	case models.LoginType:
 		var login models.Login
-		err := json.Unmarshal([]byte(inputData), &login)
+		err = decoder.Decode(&login)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, ErrInvalidType.Error(), http.StatusBadRequest)
+			return
 		}
 		data = &login
-	case models.BinaryType:
-		var binary models.Binary
-		err := json.Unmarshal([]byte(inputData), &binary)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		}
-		data = &binary
-	case models.BankCardType:
-		var bankCard models.BankCard
-		err := json.Unmarshal([]byte(inputData), &bankCard)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		}
-		data = &bankCard
-	case models.TextType:
+	case models.ArbitraryTextType:
 		var text models.ArbitraryText
-		err := json.Unmarshal([]byte(inputData), &text)
+		err = decoder.Decode(&text)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, ErrInvalidType.Error(), http.StatusBadRequest)
+			return
 		}
 		data = &text
-	default:
-		http.Error(w, "invalid type", http.StatusBadRequest)
+	case models.BankCardType:
+		var bankCard models.BankCard
+		err = decoder.Decode(&bankCard)
+		if err != nil {
+			http.Error(w, ErrInvalidType.Error(), http.StatusBadRequest)
+			return
+		}
+		data = &bankCard
+	case models.BinaryType:
+		var binary models.Binary
+		err = decoder.Decode(&binary)
+		if err != nil {
+			http.Error(w, ErrInvalidType.Error(), http.StatusBadRequest)
+			return
+		}
+	}
+	if data == nil {
+		http.Error(w, "invalid data type", http.StatusBadRequest)
+		return
 	}
 
-	err := h.storage.Set(r.Context(), data.GetDataID(), data)
+	sessUserID := session.GetUserID()
+	data.GetOwnerID(&sessUserID)
+
+	err = h.storage.Set(r.Context(), tp, data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -210,22 +259,35 @@ func (h *handler) SetUserData(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+// GetUserData gets a user data
+// user must pass id as "id" url parameter (GET request)
 func (h *handler) GetUserData(w http.ResponseWriter, r *http.Request) {
 	id := models.UserDataID(r.FormValue("id"))
 	if id == "" {
 		http.Error(w, "id is empty", http.StatusBadRequest)
 	}
+	userDataType := models.UserDataType(r.FormValue("type"))
+	if userDataType == "" {
+		http.Error(w, "type is empty", http.StatusBadRequest)
+	}
 
-	// no need to chec err here, bec of middleware
-	session, _ := auth.Sessions.GetSession(r.Header.Get("sessionID"))
+	session, err := FindSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
-	data, err := h.storage.Get(r.Context(), id)
+	data, err := h.storage.Get(r.Context(), userDataType, id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	if data == nil {
+		http.Error(w, ErrNoDataFound.Error(), http.StatusNotFound)
+		return
+	}
 
-	if data.GetOwnerID() != session.GetUserID() {
+	if data.GetOwnerID(nil) != session.GetUserID() {
 		http.Error(w, ErrInvalidRequest.Error(), http.StatusBadRequest)
 		return
 	}
@@ -238,15 +300,26 @@ func (h *handler) GetUserData(w http.ResponseWriter, r *http.Request) {
 	w.Write(encData)
 }
 
+// DeleteUserData deletes a user data
 func (h *handler) DeleteUserData(w http.ResponseWriter, r *http.Request) {
-	sessionID := r.FormValue("sessionID")
-	session, _ := auth.Sessions.GetSession(sessionID)
+	session, err := FindSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	userID := session.GetUserID()
 
 	id := models.UserDataID(r.FormValue("id"))
+	if id == "" {
+		http.Error(w, "id is empty", http.StatusBadRequest)
+	}
+	userDataType := models.UserDataType(r.FormValue("type"))
+	if userDataType == "" {
+		http.Error(w, "type is empty", http.StatusBadRequest)
+	}
 
-	data, err := h.storage.Get(r.Context(), id)
+	data, err := h.storage.Get(r.Context(), userDataType, id)
 	if err != nil {
 		if errors.Is(err, storage.ErrObjectMiss) {
 			http.Error(w, ErrNothingToDelete.Error(), http.StatusNotFound)
@@ -256,7 +329,7 @@ func (h *handler) DeleteUserData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if data.GetOwnerID() != userID {
+	if data.GetOwnerID(nil) != userID {
 		http.Error(w, ErrInvalidRequest.Error(), http.StatusBadRequest)
 		return
 	}
@@ -270,9 +343,15 @@ func (h *handler) DeleteUserData(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("ok"))
 }
 
+// SyncUserData syncs the data for a user
+// server will return all data client have on server
+// mapped by type slice of structs e.g. map[string][]models.UserData
 func (h *handler) SyncUserData(w http.ResponseWriter, r *http.Request) {
-	sessionID := r.FormValue("sessionID")
-	session, _ := auth.Sessions.GetSession(sessionID)
+	session, err := FindSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	userID := session.GetUserID()
 
@@ -286,7 +365,7 @@ func (h *handler) SyncUserData(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, ErrNoDataFound.Error(), http.StatusNotFound)
 	}
 
-	marshalledData, err := json.Marshal(utils2.PackData(allData))
+	marshalledData, err := json.Marshal(utils.PackData(allData))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

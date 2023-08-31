@@ -51,7 +51,7 @@ func main() {
 	go func() {
 		log.Info().Msgf("Listening on %s", config.GetConfig().HttpServerPort)
 		//err := http.ListenAndServeTLS(":"+config.GetConfig().HttpServerPort, "cert/server-cert.pem", "cert/server-key.pem", r)
-		err := http.ListenAndServeTLS(
+		err = http.ListenAndServeTLS(
 			":"+config.GetConfig().HttpServerPort,
 			config.GetConfig().CertFilePath,
 			config.GetConfig().KeyFilePath,

@@ -4,7 +4,6 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"github.com/gynshu-one/goph-keeper/shared/models"
 	"io"
 )
 
@@ -60,12 +59,4 @@ func DecryptData(ciphertext []byte, key string) ([]byte, error) {
 		return nil, err
 	}
 	return plaintext, nil
-}
-
-func PackData(allData []models.UserData) models.PackedUserData {
-	var out = make(models.PackedUserData)
-	for i := range allData {
-		out[allData[i].GetType()][allData[i].GetDataID()] = allData[i]
-	}
-	return out
 }

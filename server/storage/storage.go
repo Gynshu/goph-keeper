@@ -4,13 +4,17 @@ import (
 	"context"
 	"errors"
 	"github.com/gynshu-one/goph-keeper/shared/models"
+	"github.com/rs/zerolog/log"
 	"sync"
 
 	"github.com/gammazero/workerpool"
-	"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
+
+type mongoDecoder interface {
+	Decode(interface{}) error
+}
 
 var workers = workerpool.New(6)
 
@@ -23,9 +27,9 @@ type storage struct {
 
 type Storage interface {
 	// Get returns the model with the given id.
-	Get(ctx context.Context, id models.UserDataID) (models.UserData, error)
+	Get(ctx context.Context, userDataType models.UserDataType, ID models.UserDataID) (models.UserData, error)
 	GetUserData(ctx context.Context, userID string) ([]models.UserData, error)
-	Set(ctx context.Context, id models.UserDataID, data models.UserData) error
+	Set(ctx context.Context, userDataType models.UserDataType, data models.UserData) error
 	Delete(ctx context.Context, id models.UserDataID) error
 }
 
@@ -39,52 +43,56 @@ func NewStorage(db *mongo.Database) *storage {
 }
 
 // Get returns the model with the given id.
-func (s *storage) Get(ctx context.Context, id models.UserDataID) (models.UserData, error) {
+func (s *storage) Get(ctx context.Context, userDataType models.UserDataType, ID models.UserDataID) (data models.UserData, err error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	var err error
-	data, ok := s.cache[id]
-	if !ok {
-		log.Debug().Msgf("Cache miss for %s", id)
-		workers.SubmitWait(func() {
-			res := s.db.Collection("goph-keeper").FindOne(ctx, bson.M{"_id": id})
-			if errors.Is(res.Err(), mongo.ErrNoDocuments) {
-				err = ErrObjectMiss
-				return
-			}
-			err = res.Decode(&data)
-			if err != nil {
-				return
-			}
-		})
+	data, ok := s.cache[ID]
+	if ok {
+		return data, nil
 	}
+	log.Debug().Msgf("Cache miss for %s", ID)
 
-	return data, err
+	workers.SubmitWait(func() {
+		res := s.db.Collection(string(userDataType)).FindOne(ctx, bson.M{"_id": ID})
+		if res.Err() != nil {
+			if errors.Is(res.Err(), mongo.ErrNoDocuments) {
+				return
+			}
+		}
+		data, err = decode(res, userDataType)
+		if err != nil {
+			return
+		}
+	})
+	return
 }
 
 // Set sets the model with the given id.
-func (s *storage) Set(ctx context.Context, id models.UserDataID, data models.UserData) error {
+func (s *storage) Set(ctx context.Context, userDataType models.UserDataType, data models.UserData) error {
+	if data.GetDataID() == "" {
+		data.MakeID()
+	}
 
 	s.mu.Lock()
-	_, ok := s.cache[id]
+	_, ok := s.cache[data.GetDataID()]
 	if !ok {
 		data.SetCreatedAt()
 		data.SetUpdatedAt()
-		s.cache[id] = data
+		s.cache[data.GetDataID()] = data
 	} else {
 		data.SetUpdatedAt()
-		s.cache[id] = data
+		s.cache[data.GetDataID()] = data
 	}
 	s.mu.Unlock()
 
 	var err error
 	workers.SubmitWait(func() {
 		// create a new document in mongo
-		_, err = s.db.Collection("goph-keeper").InsertOne(ctx, data)
+		_, err = s.db.Collection(string(userDataType)).InsertOne(ctx, data)
 		if err != nil {
 			if mongo.IsDuplicateKeyError(err) {
-				_, err = s.db.Collection("goph-keeper").ReplaceOne(ctx, bson.M{"_id": id}, data)
+				_, err = s.db.Collection("goph-keeper").ReplaceOne(ctx, bson.M{"_id": data.GetDataID()}, data)
 			}
 		}
 	})
@@ -108,21 +116,55 @@ func (s *storage) Delete(ctx context.Context, id models.UserDataID) error {
 	return err
 }
 
-func (s *storage) GetUserData(ctx context.Context, userID string) ([]models.UserData, error) {
+func (s *storage) GetUserData(ctx context.Context, userID string) (result []models.UserData, err error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	var err error
-	var data []models.UserData
 	workers.SubmitWait(func() {
-		res, err := s.db.Collection("goph-keeper").Find(ctx, bson.M{"owner_id": userID})
-		if err != nil {
-			return
-		}
-		err = res.All(ctx, &data)
-		if err != nil {
-			return
+		for _, userDataType := range models.UserDataTypes {
+			var res *mongo.Cursor
+			res, err = s.db.Collection(string(userDataType)).Find(ctx, bson.D{{"owner_id", userID}})
+			if err != nil {
+				return
+			}
+			for res.Next(ctx) {
+				var decoded models.UserData
+				decoded, err = decode(res, userDataType)
+				if err != nil {
+					return
+				}
+				result = append(result, decoded)
+
+				if res.TryNext(ctx) == false {
+					break
+				}
+			}
 		}
 	})
-	return data, err
+
+	return result, err
+}
+
+func decode(decoder mongoDecoder, userDataType models.UserDataType) (data models.UserData, err error) {
+	switch userDataType {
+	case models.BinaryType:
+		var binary models.Binary
+		err = decoder.Decode(&binary)
+		return &binary, err
+	case models.ArbitraryTextType:
+		var arbitraryText models.ArbitraryText
+		err = decoder.Decode(&arbitraryText)
+		return &arbitraryText, err
+	case models.BankCardType:
+		var bankCard models.BankCard
+		err = decoder.Decode(&bankCard)
+		return &bankCard, err
+	case models.LoginType:
+		var login models.Login
+		err = decoder.Decode(&login)
+		return &login, err
+	default:
+		err = ErrObjectMiss
+	}
+	return nil, err
 }

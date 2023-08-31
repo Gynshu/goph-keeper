@@ -22,66 +22,63 @@ type Binary struct {
 	CreatedAt int64 `json:"created_at" bson:"created_at"`
 	// UpdatedAt is the time when this binary was last updated
 	UpdatedAt int64 `json:"updated_at" bson:"updated_at"`
-	// DeletedAt is the time when this binary was deleted
-	DeletedAt int64 `json:"deleted_at" bson:"deleted_at"`
 }
 
 // EncryptAll encrypts all sensitive data
-func (b *Binary) EncryptAll(passphrase string) error {
-	encryptedBinary, err := utils.EncryptData(b.Binary, passphrase)
+func (data *Binary) EncryptAll(passphrase string) error {
+	encryptedBinary, err := utils.EncryptData(data.Binary, passphrase)
 	if err != nil {
 		return err
 	}
-	b.Binary = encryptedBinary
-	encryptedInfo, err := utils.EncryptData([]byte(b.Info), passphrase)
+	data.Binary = encryptedBinary
+	encryptedInfo, err := utils.EncryptData([]byte(data.Info), passphrase)
 	if err != nil {
 		return err
 	}
-	b.Info = string(encryptedInfo)
-	b.UpdatedAt = time.Now().Unix()
+	data.Info = string(encryptedInfo)
+	data.UpdatedAt = time.Now().Unix()
 	return nil
 }
 
 // DecryptAll decrypts all sensitive data
-func (b *Binary) DecryptAll(passphrase string) error {
-	decryptedBinary, err := utils.DecryptData(b.Binary, passphrase)
+func (data *Binary) DecryptAll(passphrase string) error {
+	decryptedBinary, err := utils.DecryptData(data.Binary, passphrase)
 	if err != nil {
 		return err
 	}
-	b.Binary = decryptedBinary
-	decryptedInfo, err := utils.DecryptData([]byte(b.Info), passphrase)
+	data.Binary = decryptedBinary
+	decryptedInfo, err := utils.DecryptData([]byte(data.Info), passphrase)
 	if err != nil {
 		return err
 	}
-	b.Info = string(decryptedInfo)
+	data.Info = string(decryptedInfo)
 	return nil
 }
 
 // GetOwnerID returns the owner id
-func (b *Binary) GetOwnerID() string {
-	return b.OwnerID
+func (data *Binary) GetOwnerID(id *string) string {
+	if id != nil {
+		data.OwnerID = *id
+	}
+	return data.OwnerID
 }
 
-func (b *Binary) GetDataID() UserDataID {
-	return UserDataID(b.ID)
+func (data *Binary) GetDataID() UserDataID {
+	return UserDataID(data.ID)
 }
 
-func (b *Binary) SetCreatedAt() {
-	b.CreatedAt = time.Now().Unix()
+func (data *Binary) SetCreatedAt() {
+	data.CreatedAt = time.Now().Unix()
 }
 
-func (b *Binary) SetUpdatedAt() {
-	b.UpdatedAt = time.Now().Unix()
+func (data *Binary) SetUpdatedAt() {
+	data.UpdatedAt = time.Now().Unix()
 }
 
-func (b *Binary) SetDeletedAt() {
-	b.DeletedAt = time.Now().Unix()
+func (data *Binary) MakeID() {
+	data.ID = uuid.New().String()
 }
 
-func (b *Binary) MakeID() {
-	b.ID = uuid.New().String()
-}
-
-func (b *Binary) GetType() UserDataType {
+func (data *Binary) GetType() UserDataType {
 	return BinaryType
 }

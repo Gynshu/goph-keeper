@@ -1,9 +1,10 @@
 package utils
 
 import (
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"github.com/gynshu-one/goph-keeper/shared/models"
+	"math/rand"
 	"net/mail"
 )
 
@@ -37,4 +38,30 @@ func ValidateEmail(email string) bool {
 		return false
 	}
 	return true
+}
+
+func PackData(allData []models.UserData) models.PackedUserData {
+	var out = make(models.PackedUserData)
+	for i := range allData {
+		out[allData[i].GetType()] = append(out[allData[i].GetType()],
+			allData[i])
+	}
+	return out
+}
+
+// GenRandomString generates a random string of length n
+func GenRandomString(n int) string {
+	// Create a slice of runes to represent the possible characters in the string.
+	letterRunes := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+
+	// Create a byte slice to store the random string.
+	b := make([]rune, n)
+
+	// Generate a random number for each position in the byte slice.
+	for i := range b {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+
+	// Return the random string as a string.
+	return string(b)
 }

@@ -39,103 +39,100 @@ type BankCard struct {
 	CreatedAt int64 `json:"created_at" bson:"createdAt"`
 	// UpdatedAt is the time when this text was last updated
 	UpdatedAt int64 `json:"updated_at" bson:"updatedAt"`
-	// DeletedAt is the time when this text was deleted
-	DeletedAt int64 `json:"deleted_at" bson:"deletedAt"`
 }
 
-func (b *BankCard) EncryptAll(passphrase string) error {
-	encryptedCardNum, err := utils.EncryptData([]byte(string(b.CardNum)), passphrase)
+func (data *BankCard) EncryptAll(passphrase string) error {
+	encryptedCardNum, err := utils.EncryptData([]byte(string(data.CardNum)), passphrase)
 	if err != nil {
 		return err
 	}
-	b.CardNum = string(encryptedCardNum)
+	data.CardNum = string(encryptedCardNum)
 
-	encryptedCardName, err := utils.EncryptData([]byte(b.CardName), passphrase)
+	encryptedCardName, err := utils.EncryptData([]byte(data.CardName), passphrase)
 	if err != nil {
 		return err
 	}
-	b.CardName = string(encryptedCardName)
+	data.CardName = string(encryptedCardName)
 
-	encryptedInfo, err := utils.EncryptData([]byte(b.Info), passphrase)
+	encryptedInfo, err := utils.EncryptData([]byte(data.Info), passphrase)
 	if err != nil {
 		return err
 	}
-	b.Info = string(encryptedInfo)
+	data.Info = string(encryptedInfo)
 
-	encryptedCardCvv, err := utils.EncryptData([]byte(b.CardCvv), passphrase)
+	encryptedCardCvv, err := utils.EncryptData([]byte(data.CardCvv), passphrase)
 	if err != nil {
 		return err
 	}
-	b.CardCvv = string(encryptedCardCvv)
+	data.CardCvv = string(encryptedCardCvv)
 
-	encryptedCardExp, err := utils.EncryptData([]byte(b.CardExp), passphrase)
+	encryptedCardExp, err := utils.EncryptData([]byte(data.CardExp), passphrase)
 	if err != nil {
 		return err
 	}
-	b.CardExp = string(encryptedCardExp)
+	data.CardExp = string(encryptedCardExp)
 
-	b.UpdatedAt = time.Now().Unix()
+	data.UpdatedAt = time.Now().Unix()
 	return nil
 }
 
-func (b *BankCard) DecryptAll(passphrase string) error {
-	decryptedCardNum, err := utils.DecryptData([]byte(b.CardNum), passphrase)
+func (data *BankCard) DecryptAll(passphrase string) error {
+	decryptedCardNum, err := utils.DecryptData([]byte(data.CardNum), passphrase)
 	if err != nil {
 		return err
 	}
-	b.CardNum = string(decryptedCardNum)
+	data.CardNum = string(decryptedCardNum)
 
-	decryptedCardName, err := utils.DecryptData([]byte(b.CardName), passphrase)
+	decryptedCardName, err := utils.DecryptData([]byte(data.CardName), passphrase)
 	if err != nil {
 		return err
 	}
-	b.CardName = string(decryptedCardName)
+	data.CardName = string(decryptedCardName)
 
-	decryptedInfo, err := utils.DecryptData([]byte(b.Info), passphrase)
+	decryptedInfo, err := utils.DecryptData([]byte(data.Info), passphrase)
 	if err != nil {
 		return err
 	}
-	b.Info = string(decryptedInfo)
+	data.Info = string(decryptedInfo)
 
-	decryptedCardCvv, err := utils.DecryptData([]byte(b.CardCvv), passphrase)
+	decryptedCardCvv, err := utils.DecryptData([]byte(data.CardCvv), passphrase)
 	if err != nil {
 		return err
 	}
-	b.CardCvv = string(decryptedCardCvv)
+	data.CardCvv = string(decryptedCardCvv)
 
-	decryptedCardExp, err := utils.DecryptData([]byte(b.CardExp), passphrase)
+	decryptedCardExp, err := utils.DecryptData([]byte(data.CardExp), passphrase)
 	if err != nil {
 		return err
 	}
-	b.CardExp = string(decryptedCardExp)
+	data.CardExp = string(decryptedCardExp)
 
 	return nil
 }
 
-func (b *BankCard) GetOwnerID() string {
-	return b.OwnerID
+func (data *BankCard) GetOwnerID(id *string) string {
+	if id != nil {
+		data.OwnerID = *id
+	}
+	return data.OwnerID
 }
 
-func (b *BankCard) GetDataID() UserDataID {
-	return UserDataID(b.ID)
+func (data *BankCard) GetDataID() UserDataID {
+	return UserDataID(data.ID)
 }
 
-func (b *BankCard) SetCreatedAt() {
-	b.CreatedAt = time.Now().Unix()
+func (data *BankCard) SetCreatedAt() {
+	data.CreatedAt = time.Now().Unix()
 }
 
-func (b *BankCard) SetUpdatedAt() {
-	b.UpdatedAt = time.Now().Unix()
+func (data *BankCard) SetUpdatedAt() {
+	data.UpdatedAt = time.Now().Unix()
 }
 
-func (b *BankCard) SetDeletedAt() {
-	b.DeletedAt = time.Now().Unix()
+func (data *BankCard) MakeID() {
+	data.ID = uuid.New().String()
 }
 
-func (b *BankCard) MakeID() {
-	b.ID = uuid.New().String()
-}
-
-func (b *BankCard) GetType() UserDataType {
+func (data *BankCard) GetType() UserDataType {
 	return BankCardType
 }

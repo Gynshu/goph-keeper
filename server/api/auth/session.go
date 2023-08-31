@@ -8,9 +8,9 @@ import (
 	"github.com/google/uuid"
 )
 
-var Sessions SessionManager
+var Sessions Manager
 
-type SessionManager interface {
+type Manager interface {
 	// CreateSession creates a new session for a user
 	// returns a session ID and an error if something went wrong
 	CreateSession(userID string) (*Session, error)
@@ -37,7 +37,7 @@ type sessionManager struct {
 	storage map[string]Session
 }
 
-func NewSessionManager() SessionManager {
+func NewSessionManager() Manager {
 	return &sessionManager{
 		mu:      &sync.RWMutex{},
 		storage: make(map[string]Session),

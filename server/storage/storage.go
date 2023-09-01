@@ -22,14 +22,14 @@ var workers = workerpool.New(6)
 type storage struct {
 	db    *mongo.Database
 	mu    *sync.RWMutex
-	cache map[models.UserDataID]models.UserData
+	cache map[models.UserDataID]models.UserDataModel
 }
 
 type Storage interface {
 	// Get returns the model with the given id.
-	Get(ctx context.Context, userDataType models.UserDataType, ID models.UserDataID) (models.UserData, error)
-	GetUserData(ctx context.Context, userID string) ([]models.UserData, error)
-	Set(ctx context.Context, userDataType models.UserDataType, data models.UserData) error
+	Get(ctx context.Context, userDataType models.UserDataType, ID models.UserDataID) (models.UserDataModel, error)
+	GetUserData(ctx context.Context, userID string) ([]models.UserDataModel, error)
+	Set(ctx context.Context, userDataType models.UserDataType, data models.UserDataModel) error
 	Delete(ctx context.Context, id models.UserDataID) error
 }
 
@@ -38,12 +38,12 @@ func NewStorage(db *mongo.Database) *storage {
 	return &storage{
 		db:    db,
 		mu:    &sync.RWMutex{},
-		cache: make(map[models.UserDataID]models.UserData),
+		cache: make(map[models.UserDataID]models.UserDataModel),
 	}
 }
 
 // Get returns the model with the given id.
-func (s *storage) Get(ctx context.Context, userDataType models.UserDataType, ID models.UserDataID) (data models.UserData, err error) {
+func (s *storage) Get(ctx context.Context, userDataType models.UserDataType, ID models.UserDataID) (data models.UserDataModel, err error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -69,7 +69,7 @@ func (s *storage) Get(ctx context.Context, userDataType models.UserDataType, ID 
 }
 
 // Set sets the model with the given id.
-func (s *storage) Set(ctx context.Context, userDataType models.UserDataType, data models.UserData) error {
+func (s *storage) Set(ctx context.Context, userDataType models.UserDataType, data models.UserDataModel) error {
 	if data.GetDataID() == "" {
 		data.MakeID()
 	}
@@ -116,7 +116,7 @@ func (s *storage) Delete(ctx context.Context, id models.UserDataID) error {
 	return err
 }
 
-func (s *storage) GetUserData(ctx context.Context, userID string) (result []models.UserData, err error) {
+func (s *storage) GetUserData(ctx context.Context, userID string) (result []models.UserDataModel, err error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -128,7 +128,7 @@ func (s *storage) GetUserData(ctx context.Context, userID string) (result []mode
 				return
 			}
 			for res.Next(ctx) {
-				var decoded models.UserData
+				var decoded models.UserDataModel
 				decoded, err = decode(res, userDataType)
 				if err != nil {
 					return
@@ -145,7 +145,7 @@ func (s *storage) GetUserData(ctx context.Context, userID string) (result []mode
 	return result, err
 }
 
-func decode(decoder mongoDecoder, userDataType models.UserDataType) (data models.UserData, err error) {
+func decode(decoder mongoDecoder, userDataType models.UserDataType) (data models.UserDataModel, err error) {
 	switch userDataType {
 	case models.BinaryType:
 		var binary models.Binary

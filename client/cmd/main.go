@@ -41,11 +41,8 @@ func main() {
 	//}
 
 	app := tview.NewApplication()
-
 	newUI := UI.NewUI(app)
-	form := newUI.RegisterForm()
 
-	form.SetBorder(true).SetTitle("  SignUp or login, (if you already have account on this machine you will be logged in)  ").SetTitleAlign(tview.AlignLeft)
 	if err = app.SetRoot(newUI.Pages(), true).EnableMouse(true).Run(); err != nil {
 		log.Fatal().Err(err).Msg("Failed to run app")
 	}

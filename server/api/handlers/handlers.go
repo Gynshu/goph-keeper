@@ -206,7 +206,7 @@ func (h *handler) SetUserData(w http.ResponseWriter, r *http.Request) {
 
 	// Refuse to receive unknown type
 	decoder.DisallowUnknownFields()
-	var data models.UserData
+	var data models.UserDataModel
 
 	switch tp {
 	case models.LoginType:
@@ -345,7 +345,7 @@ func (h *handler) DeleteUserData(w http.ResponseWriter, r *http.Request) {
 
 // SyncUserData syncs the data for a user
 // server will return all data client have on server
-// mapped by type slice of structs e.g. map[string][]models.UserData
+// mapped by type slice of structs e.g. map[string][]models.UserDataModel
 func (h *handler) SyncUserData(w http.ResponseWriter, r *http.Request) {
 	session, err := FindSession(r)
 	if err != nil {

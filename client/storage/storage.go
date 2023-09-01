@@ -7,8 +7,9 @@ import (
 
 // Storage is a struct that holds a sync.Map to store all models.
 type Storage interface {
-	PutData(data models.PackedUserData) error
-	GetData() models.PackedUserData
+	Add(data models.UserDataModel)
+	Put(data models.PackedUserData) error
+	Get() models.PackedUserData
 }
 
 type storage struct {
@@ -23,14 +24,20 @@ func NewStorage() *storage {
 	}
 }
 
-func (s *storage) PutData(data models.PackedUserData) error {
+func (s *storage) Add(data models.UserDataModel) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.repo[data.GetType()] = append(s.repo[data.GetType()], data)
+}
+
+func (s *storage) Put(data models.PackedUserData) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.repo = data
 	return nil
 }
 
-func (s *storage) GetData() models.PackedUserData {
+func (s *storage) Get() models.PackedUserData {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	cp := make(models.PackedUserData)

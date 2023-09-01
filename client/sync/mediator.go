@@ -40,6 +40,9 @@ func NewMediator(storage storage.Storage) Mediator {
 	}
 }
 func (m *mediator) SignUp(ctx context.Context, username, password string) error {
+	if username == "" || password == "" {
+		return fmt.Errorf("username or password is empty")
+	}
 	get, err := m.client.NewRequest().SetContext(ctx).
 		SetPathParam("email", username).
 		SetPathParam("password", password).Get("https://" + config.GetConfig().ServerIP + RegisterEndpoint)
@@ -68,6 +71,9 @@ func (m *mediator) SignUp(ctx context.Context, username, password string) error 
 }
 
 func (m *mediator) SignIn(ctx context.Context, username, password string) error {
+	if username == "" || password == "" {
+		return fmt.Errorf("username or password is empty")
+	}
 	get, err := m.client.NewRequest().SetContext(ctx).
 		SetPathParam("email", username).
 		SetPathParam("password", password).Get("https://" + config.GetConfig().ServerIP + LoginEndpoint)
@@ -115,7 +121,7 @@ func (m *mediator) Sync(ctx context.Context) {
 }
 
 func (m *mediator) dumpToFile() error {
-	data := m.storage.GetData()
+	data := m.storage.Get()
 
 	marshaled, err := json.Marshal(data)
 	if err != nil {
@@ -216,7 +222,7 @@ func (m *mediator) loadFromFile() error {
 		return err
 	}
 
-	err = m.storage.PutData(data)
+	err = m.storage.Put(data)
 	if err != nil {
 		log.Trace().Msg("failed to put data")
 		return err

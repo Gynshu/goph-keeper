@@ -1,6 +1,6 @@
 package models
 
-type UserData interface {
+type UserDataModel interface {
 	EncryptAll(passphrase string) error
 	DecryptAll(passphrase string) error
 
@@ -19,7 +19,7 @@ type UserData interface {
 type UserDataType string
 type UserDataID string
 
-type PackedUserData map[UserDataType][]UserData
+type PackedUserData map[UserDataType][]UserDataModel
 
 var UserDataTypes = []UserDataType{
 	ArbitraryTextType,

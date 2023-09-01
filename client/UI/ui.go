@@ -16,8 +16,8 @@ import (
 )
 
 type UI interface {
-	Register() *tview.Form
-	ErrorPrim(err error, page string) *tview.Modal
+	register() *tview.Form
+	errorModal(err error, page string) *tview.Modal
 	Pages() *tview.Pages
 }
 
@@ -41,11 +41,16 @@ func NewUI(app *tview.Application) UI {
 }
 
 func (u *ui) Pages() *tview.Pages {
-	u.pages.AddPage("login", u.Register(), true, true)
+	u.pages.AddPage("login", u.register(), true, true)
 	u.pages.AddPage("menu", u.AddData(), true, false)
+	u.pages.AddPage("text", u.text(), true, false)
+	u.pages.AddPage("bank_card", u.bankCard(), true, false)
+	u.pages.AddPage("binary", u.binary(), true, false)
+	u.pages.AddPage("login", u.login(), true, false)
+	u.pages.AddPage("ok", u.okModal(), true, false)
 	return u.pages
 }
-func (u *ui) Register() *tview.Form {
+func (u *ui) register() *tview.Form {
 	var err error
 	var secret string
 
@@ -68,12 +73,12 @@ func (u *ui) Register() *tview.Form {
 			defer cancel()
 			err = u.mediator.SignUp(ctx, config.CurrentUser.Username, secret)
 			if err != nil {
-				u.pages.AddAndSwitchToPage("error", u.ErrorPrim(err, "login"), true)
+				u.pages.AddAndSwitchToPage("error", u.errorModal(err, "login"), true)
 				return
 			}
 			err = keyring.Set(config.ServiceName, config.CurrentUser.Username, secret)
 			if err != nil {
-				u.pages.AddAndSwitchToPage("error", u.ErrorPrim(err, "login"), true)
+				u.pages.AddAndSwitchToPage("error", u.errorModal(err, "login"), true)
 				return
 			}
 			return
@@ -82,12 +87,12 @@ func (u *ui) Register() *tview.Form {
 		defer cancel()
 		err = u.mediator.SignIn(ctx, config.CurrentUser.Username, secret)
 		if err != nil {
-			u.pages.AddAndSwitchToPage("error", u.ErrorPrim(err, "login"), true)
+			u.pages.AddAndSwitchToPage("error", u.errorModal(err, "login"), true)
 			return
 		}
 		err = keyring.Set(config.ServiceName, config.CurrentUser.Username, secret)
 		if err != nil {
-			u.pages.AddAndSwitchToPage("error", u.ErrorPrim(err, "login"), true)
+			u.pages.AddAndSwitchToPage("error", u.errorModal(err, "login"), true)
 			return
 		}
 		return
@@ -98,7 +103,7 @@ func (u *ui) Register() *tview.Form {
 	return form
 }
 
-func (u *ui) ErrorPrim(err error, page string) *tview.Modal {
+func (u *ui) errorModal(err error, page string) *tview.Modal {
 	modal := tview.NewModal().
 		SetText(err.Error()).
 		AddButtons([]string{"Retry"}).
@@ -110,7 +115,18 @@ func (u *ui) ErrorPrim(err error, page string) *tview.Modal {
 	return modal
 }
 
-func (u *ui) AddText() *tview.Form {
+func (u *ui) okModal() *tview.Modal {
+	modal := tview.NewModal().
+		SetText("Success").
+		AddButtons([]string{"Ok"}).
+		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+			u.pages.SwitchToPage("menu")
+		})
+	modal.SetBorder(true).SetTitle("Success").SetTitleAlign(tview.AlignLeft)
+	return modal
+}
+
+func (u *ui) text() *tview.Form {
 	var data = &models.ArbitraryText{}
 	form := tview.NewForm().
 		AddInputField("Name", "", 30, nil, func(in string) {
@@ -121,18 +137,15 @@ func (u *ui) AddText() *tview.Form {
 		}).
 		AddButton("Add", func() {
 			if data.Name == "" {
-				u.pages.AddAndSwitchToPage("error", u.ErrorPrim(fmt.Errorf("name is empty"), "text"), true)
+				u.pages.AddAndSwitchToPage("error", u.errorModal(fmt.Errorf("name is empty"), "text"), true)
 				return
 			}
 			if data.Text == "" {
-				u.pages.AddAndSwitchToPage("error", u.ErrorPrim(fmt.Errorf("text is empty"), "text"), true)
+				u.pages.AddAndSwitchToPage("error", u.errorModal(fmt.Errorf("text is empty"), "text"), true)
 				return
 			}
-			data.MakeID()
-			data.SetCreatedAt()
-			data.SetUpdatedAt()
-			data.OwnerID = config.CurrentUser.Username
 			u.storage.Add(data)
+			u.pages.AddAndSwitchToPage("ok", u.okModal(), true)
 			return
 		}).AddButton("Quit", func() {
 		u.app.Stop()
@@ -141,7 +154,7 @@ func (u *ui) AddText() *tview.Form {
 	return form
 }
 
-func (u *ui) AddBankCard() *tview.Form {
+func (u *ui) bankCard() *tview.Form {
 	var data = &models.BankCard{}
 	form := tview.NewForm().
 		AddInputField("Name", "", 30, nil, func(in string) {
@@ -164,18 +177,15 @@ func (u *ui) AddBankCard() *tview.Form {
 		}).
 		AddButton("Add", func() {
 			if data.Name == "" {
-				u.pages.AddAndSwitchToPage("error", u.ErrorPrim(fmt.Errorf("name is empty"), "bank_card"), true)
+				u.pages.AddAndSwitchToPage("error", u.errorModal(fmt.Errorf("name is empty"), "bank_card"), true)
 				return
 			}
 			if data.CardNum == "" {
-				u.pages.AddAndSwitchToPage("error", u.ErrorPrim(fmt.Errorf("text is empty"), "bank_card"), true)
+				u.pages.AddAndSwitchToPage("error", u.errorModal(fmt.Errorf("text is empty"), "bank_card"), true)
 				return
 			}
-			data.MakeID()
-			data.SetCreatedAt()
-			data.SetUpdatedAt()
-			data.OwnerID = config.CurrentUser.Username
 			u.storage.Add(data)
+			u.pages.AddAndSwitchToPage("ok", u.okModal(), true)
 			return
 		}).AddButton("Quit", func() {
 		u.app.Stop()
@@ -184,8 +194,8 @@ func (u *ui) AddBankCard() *tview.Form {
 	return form
 }
 
-func (u *ui) AddBinary() *tview.Form {
-	var data = &models.Binary{}
+func (u *ui) binary() *tview.Form {
+	var data = &models.Binary{OwnerID: config.CurrentUser.Username}
 	form := tview.NewForm().
 		AddInputField("Name", "", 30, nil, func(in string) {
 			data.Name = in
@@ -196,31 +206,28 @@ func (u *ui) AddBinary() *tview.Form {
 		AddInputField("Path", "", 30, nil, func(in string) {
 			file, err := os.Open(in)
 			if err != nil {
-				u.pages.AddAndSwitchToPage("error", u.ErrorPrim(err, "binary"), true)
+				u.pages.AddAndSwitchToPage("error", u.errorModal(err, "binary"), true)
 				return
 			}
 			defer file.Close()
 			readAll, err := io.ReadAll(file)
 			if err != nil {
-				u.pages.AddAndSwitchToPage("error", u.ErrorPrim(err, "binary"), true)
+				u.pages.AddAndSwitchToPage("error", u.errorModal(err, "binary"), true)
 				return
 			}
 			data.Binary = readAll
 		}).
 		AddButton("Add", func() {
 			if len(data.Binary) == 0 {
-				u.pages.AddAndSwitchToPage("error", u.ErrorPrim(fmt.Errorf("file is empty"), "binary"), true)
+				u.pages.AddAndSwitchToPage("error", u.errorModal(fmt.Errorf("file is empty"), "binary"), true)
 				return
 			}
 			if data.Name == "" {
-				u.pages.AddAndSwitchToPage("error", u.ErrorPrim(fmt.Errorf("name is empty"), "binary"), true)
+				u.pages.AddAndSwitchToPage("error", u.errorModal(fmt.Errorf("name is empty"), "binary"), true)
 				return
 			}
-			data.MakeID()
-			data.SetCreatedAt()
-			data.SetUpdatedAt()
-			data.OwnerID = config.CurrentUser.Username
 			u.storage.Add(data)
+			u.pages.AddAndSwitchToPage("ok", u.okModal(), true)
 			return
 		}).AddButton("Quit", func() {
 		u.app.Stop()
@@ -229,7 +236,7 @@ func (u *ui) AddBinary() *tview.Form {
 	return form
 }
 
-func (u *ui) AddLogin() *tview.Form {
+func (u *ui) login() *tview.Form {
 	var data = &models.Login{}
 	form := tview.NewForm().
 		AddInputField("Name", "", 30, nil, func(in string) {
@@ -252,22 +259,19 @@ func (u *ui) AddLogin() *tview.Form {
 		}).
 		AddButton("Add", func() {
 			if data.Name == "" {
-				u.pages.AddAndSwitchToPage("error", u.ErrorPrim(fmt.Errorf("name is empty"), "login"), true)
+				u.pages.AddAndSwitchToPage("error", u.errorModal(fmt.Errorf("name is empty"), "login"), true)
 				return
 			}
 			if data.Username == "" {
-				u.pages.AddAndSwitchToPage("error", u.ErrorPrim(fmt.Errorf("username is empty"), "login"), true)
+				u.pages.AddAndSwitchToPage("error", u.errorModal(fmt.Errorf("username is empty"), "login"), true)
 				return
 			}
 			if data.Password == "" {
-				u.pages.AddAndSwitchToPage("error", u.ErrorPrim(fmt.Errorf("password is empty"), "login"), true)
+				u.pages.AddAndSwitchToPage("error", u.errorModal(fmt.Errorf("password is empty"), "login"), true)
 				return
 			}
-			data.MakeID()
-			data.SetCreatedAt()
-			data.SetUpdatedAt()
-			data.OwnerID = config.CurrentUser.Username
 			u.storage.Add(data)
+			u.pages.AddAndSwitchToPage("ok", u.okModal(), true)
 			return
 		}).AddButton("Quit", func() {
 		u.app.Stop()
@@ -279,13 +283,13 @@ func (u *ui) AddData() *tview.Modal {
 	modal := tview.NewModal().SetText("Choose What to create").AddButtons([]string{"Text", "Bank Card", "Binary", "Login"}).SetDoneFunc(func(buttonIndex int, buttonLabel string) {
 		switch buttonIndex {
 		case 0:
-			u.pages.AddAndSwitchToPage("text", u.AddText(), true)
+			u.pages.AddAndSwitchToPage("text", u.text(), true)
 		case 1:
-			u.pages.AddAndSwitchToPage("bank_card", u.AddBankCard(), true)
+			u.pages.AddAndSwitchToPage("bank_card", u.bankCard(), true)
 		case 2:
-			u.pages.AddAndSwitchToPage("binary", u.AddBinary(), true)
+			u.pages.AddAndSwitchToPage("binary", u.binary(), true)
 		case 3:
-			u.pages.AddAndSwitchToPage("login", u.AddLogin(), true)
+			u.pages.AddAndSwitchToPage("login", u.login(), true)
 		}
 	})
 	return modal

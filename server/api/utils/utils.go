@@ -40,7 +40,7 @@ func ValidateEmail(email string) bool {
 	return true
 }
 
-func PackData(allData []models.UserDataModel) models.PackedUserData {
+func PackData(allData map[models.UserDataID]models.UserDataModel) models.PackedUserData {
 	var out = make(models.PackedUserData)
 	for i := range allData {
 		out[allData[i].GetType()] = append(out[allData[i].GetType()],

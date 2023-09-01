@@ -88,7 +88,7 @@ func (data *Login) DecryptAll(passphrase string) error {
 }
 
 // GetOwnerID returns the owner id
-func (data *Login) GetOwnerID(id *string) string {
+func (data *Login) GetOrSetOwnerID(id *string) string {
 	if id != nil {
 		data.OwnerID = *id
 	}
@@ -150,6 +150,10 @@ func (data *Login) SetCreatedAt() {
 // SetUpdatedAt sets the updated at time
 func (data *Login) SetUpdatedAt() {
 	data.UpdatedAt = time.Now().Unix()
+}
+
+func (data *Login) GetUpdatedAt() int64 {
+	return data.UpdatedAt
 }
 
 // MakeID generates a new id

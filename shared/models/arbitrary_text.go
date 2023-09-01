@@ -43,7 +43,7 @@ func (data *ArbitraryText) DecryptAll(passphrase string) error {
 	return nil
 }
 
-func (data *ArbitraryText) GetOwnerID(id *string) string {
+func (data *ArbitraryText) GetOrSetOwnerID(id *string) string {
 	if id != nil {
 		data.OwnerID = *id
 	}
@@ -60,6 +60,10 @@ func (data *ArbitraryText) SetCreatedAt() {
 
 func (data *ArbitraryText) SetUpdatedAt() {
 	data.UpdatedAt = time.Now().Unix()
+}
+
+func (data *ArbitraryText) GetUpdatedAt() int64 {
+	return data.UpdatedAt
 }
 
 func (data *ArbitraryText) MakeID() {

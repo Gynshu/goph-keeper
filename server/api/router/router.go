@@ -25,10 +25,7 @@ func NewRouter(handlers handlers.Handlers) *chi.Mux {
 		r.With().Get("/create", handlers.CreateUser)
 		r.With().Get("/login", handlers.LoginUser)
 		r.With(middlewares.SessionCheck).Get("/logout", handlers.LogoutUser)
-		r.With(middlewares.SessionCheck).Post("/set", handlers.SetUserData)
-		r.With(middlewares.SessionCheck).Get("/get", handlers.GetUserData)
-		r.With(middlewares.SessionCheck).Get("/delete", handlers.DeleteUserData)
-		r.With(middlewares.SessionCheck).Get("/sync", handlers.SyncUserData)
+		r.With(middlewares.SessionCheck).Post("/sync", handlers.SyncUserData)
 	})
 
 	return r

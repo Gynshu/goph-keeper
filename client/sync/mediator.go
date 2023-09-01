@@ -9,6 +9,7 @@ import (
 	"github.com/gynshu-one/goph-keeper/client/storage"
 	"github.com/gynshu-one/goph-keeper/shared/models"
 	"github.com/rs/zerolog/log"
+	"net/http"
 	"os"
 	"time"
 )
@@ -16,9 +17,6 @@ import (
 const (
 	RegisterEndpoint = "/user/create"
 	LoginEndpoint    = "/user/login"
-	SetEndpoint      = "/user/set"
-	GetEndpoint      = "/user/get"
-	DeleteEndpoint   = "/user/delete"
 	SyncEndpoint     = "/user/sync"
 )
 
@@ -116,6 +114,7 @@ func (m *mediator) Sync(ctx context.Context) {
 				log.Err(err).Msg("failed to dump data to file")
 			}
 		case <-pollTimer.C:
+			m.sync(ctx)
 		}
 	}
 }
@@ -228,4 +227,47 @@ func (m *mediator) loadFromFile() error {
 		return err
 	}
 	return nil
+}
+
+func (m *mediator) sync(ctx context.Context) {
+	localData := m.storage.Get()
+	if len(localData) == 0 {
+		return
+	}
+
+	// send data to server
+	response, err := m.client.NewRequest().SetContext(ctx).
+		SetBody(localData).SetCookie(&http.Cookie{
+		Name:  "session_id",
+		Value: config.CurrentUser.SessionID,
+	}).Get("https://" + config.GetConfig().ServerIP + SyncEndpoint)
+	if err != nil {
+		log.Err(err).Msg("failed to send data to server")
+		return
+	}
+	if response.StatusCode() != 200 {
+		log.Trace().Msgf("failed to send data to server, status code: %d", response.StatusCode())
+		return
+	}
+
+	defer response.RawBody().Close()
+	decoder := json.NewDecoder(response.RawBody())
+
+	var serverData models.PackedUserData
+	// check fi body is empty or not
+	if err = decoder.Decode(&serverData); err != nil {
+		if err.Error() == "EOF" {
+			log.Info().Msg("server data is empty")
+			serverData = make(models.PackedUserData)
+		} else {
+			log.Err(err).Msg("failed to decode data")
+			return
+		}
+	}
+
+	err = m.storage.Put(serverData)
+	if err != nil {
+		log.Err(err).Msg("failed to put data")
+		return
+	}
 }

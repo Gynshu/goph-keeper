@@ -110,7 +110,7 @@ func (data *BankCard) DecryptAll(passphrase string) error {
 	return nil
 }
 
-func (data *BankCard) GetOwnerID(id *string) string {
+func (data *BankCard) GetOrSetOwnerID(id *string) string {
 	if id != nil {
 		data.OwnerID = *id
 	}
@@ -127,6 +127,10 @@ func (data *BankCard) SetCreatedAt() {
 
 func (data *BankCard) SetUpdatedAt() {
 	data.UpdatedAt = time.Now().Unix()
+}
+
+func (data *BankCard) GetUpdatedAt() int64 {
+	return data.UpdatedAt
 }
 
 func (data *BankCard) MakeID() {

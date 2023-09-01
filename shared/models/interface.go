@@ -4,14 +4,16 @@ type UserDataModel interface {
 	EncryptAll(passphrase string) error
 	DecryptAll(passphrase string) error
 
-	// GetOwnerID Returns the ownerID of the data
+	// GetOrSetOwnerID Returns the ownerID of the data
 	// if id is not nil !!, it will be set to the ownerID
-	GetOwnerID(id *string) string
+	GetOrSetOwnerID(id *string) string
 	GetDataID() UserDataID
 
 	MakeID()
 	SetUpdatedAt()
 	SetCreatedAt()
+
+	GetUpdatedAt() int64
 
 	GetType() UserDataType
 }

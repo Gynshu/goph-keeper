@@ -1,12 +1,15 @@
 package storage
 
 import (
+	"github.com/gynshu-one/goph-keeper/client/config"
 	"github.com/gynshu-one/goph-keeper/shared/models"
 	"sync"
 )
 
 // Storage is a struct that holds a sync.Map to store all models.
 type Storage interface {
+	// Add adds a new model to the storage.
+	// Use only For NEW Data
 	Add(data models.UserDataModel)
 	Put(data models.PackedUserData) error
 	Get() models.PackedUserData
@@ -24,9 +27,16 @@ func NewStorage() *storage {
 	}
 }
 
+// Add adds a new model to the storage.
+//
+//	Use only For NEW Data
 func (s *storage) Add(data models.UserDataModel) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	data.GetOrSetOwnerID(&config.CurrentUser.Username)
+	data.MakeID()
+	data.SetCreatedAt()
+	data.SetUpdatedAt()
 	s.repo[data.GetType()] = append(s.repo[data.GetType()], data)
 }
 

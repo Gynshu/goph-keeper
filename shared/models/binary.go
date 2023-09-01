@@ -56,7 +56,7 @@ func (data *Binary) DecryptAll(passphrase string) error {
 }
 
 // GetOwnerID returns the owner id
-func (data *Binary) GetOwnerID(id *string) string {
+func (data *Binary) GetOrSetOwnerID(id *string) string {
 	if id != nil {
 		data.OwnerID = *id
 	}
@@ -74,7 +74,9 @@ func (data *Binary) SetCreatedAt() {
 func (data *Binary) SetUpdatedAt() {
 	data.UpdatedAt = time.Now().Unix()
 }
-
+func (data *Binary) GetUpdatedAt() int64 {
+	return data.UpdatedAt
+}
 func (data *Binary) MakeID() {
 	data.ID = uuid.New().String()
 }

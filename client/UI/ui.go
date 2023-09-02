@@ -111,12 +111,10 @@ func (u *ui) itemsTable() *tview.List {
 	list.AddItem("Back", "", 'q', func() {
 		u.pages.SwitchToPage("menu")
 	})
-	for tp, slice := range items {
-		for _, item := range slice {
-			list.AddItem(item.GetName(), "type of "+string(tp), 0, func() {
-				u.pages.SwitchToPage(string(tp))
-			})
-		}
+	for _, item := range items {
+		list.AddItem(item.Name, "type of "+item.Type, 0, func() {
+			u.pages.SwitchToPage("show_items")
+		})
 	}
 	//table := tview.NewTable().
 	//	SetBorders(true)

@@ -17,7 +17,7 @@ import (
 const (
 	RegisterEndpoint = "/user/create"
 	LoginEndpoint    = "/user/login"
-	SyncEndpoint     = "/user/sync"
+	Endpoint         = "/user/sync"
 )
 
 type Mediator interface {
@@ -105,20 +105,12 @@ func (m *mediator) SignIn(ctx context.Context, username, password string) error 
 }
 
 func (m *mediator) Sync(ctx context.Context) {
-	var req models.SyncRequest
-	req.ToDelete = []models.UserDataID{}
-	req.ToUpdate = m.storage.Get()
-	marshaledRequest, err := json.Marshal(req)
-	if err != nil {
-		config.ErrChan <- err
-		return
-	}
 	// send data to server
 	response, err := m.client.NewRequest().SetContext(ctx).
-		SetBody(marshaledRequest).SetCookie(&http.Cookie{
+		SetBody(m.storage.Get()).SetCookie(&http.Cookie{
 		Name:  "session_id",
 		Value: config.CurrentUser.SessionID,
-	}).Post("https://" + config.GetConfig().ServerIP + SyncEndpoint)
+	}).Post("https://" + config.GetConfig().ServerIP + Endpoint)
 	if err != nil {
 		config.ErrChan <- err
 		return
@@ -138,7 +130,7 @@ func (m *mediator) Sync(ctx context.Context) {
 		return
 	}
 
-	var serverData = make(models.PackedUserData)
+	var serverData []models.UserDataModel
 	// check fi body is empty or not
 	if err = json.Unmarshal(response.Body(), &serverData); err != nil {
 		if err.Error() == "EOF" {
@@ -161,7 +153,12 @@ func (m *mediator) createUserSessionFiles() {
 	if err != nil {
 		config.ErrChan <- err
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		err = file.Close()
+		if err != nil {
+			config.ErrChan <- err
+		}
+	}(file)
 
 	// write session_id to file
 	_, err = file.WriteString(config.CurrentUser.SessionID + "\n" + config.CurrentUser.Username)

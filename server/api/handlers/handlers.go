@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"github.com/gynshu-one/goph-keeper/server/api/utils"
 	"github.com/gynshu-one/goph-keeper/server/storage"
 	"github.com/gynshu-one/goph-keeper/shared/models"
 	"github.com/rs/zerolog/log"
@@ -37,7 +36,8 @@ func NewHandlers(db *mongo.Database, storage storage.Storage) *handler {
 // If client didn't send any data, all data from server is returned
 // All new data is added to the db all existing data is updated by the newest one
 // If some data is missing from the client, it will be deleted from the db
-// Data's sensitive fields should be encrypted and passed as json models.SyncRequest
+// Data's sensitive fields should be encrypted into binary
+// data should be sent in the []models.UserDataModel format:
 func (h *handler) SyncUserData(w http.ResponseWriter, r *http.Request) {
 	session, err := FindSession(r)
 	if err != nil {
@@ -47,16 +47,17 @@ func (h *handler) SyncUserData(w http.ResponseWriter, r *http.Request) {
 
 	userID := session.GetUserID()
 
-	defer r.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err = Body.Close()
+		if err != nil {
+			log.Err(err).Msg("failed to close body")
+		}
+	}(r.Body)
 
-	var newSyncRequest = models.NewSyncRequest()
+	var fromClient []models.UserDataModel
 
-	rAll, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	err = json.Unmarshal(rAll, &newSyncRequest)
+	decoder := json.NewDecoder(r.Body)
+	err = decoder.Decode(&fromClient)
 	if err != nil {
 		if err.Error() == "EOF" {
 
@@ -68,36 +69,24 @@ func (h *handler) SyncUserData(w http.ResponseWriter, r *http.Request) {
 
 	sessUserID := session.GetUserID()
 
-	if newSyncRequest.ToUpdate != nil {
-		for _, slice := range newSyncRequest.ToUpdate {
-			for _, item := range slice {
-				err = h.storage.SetData(r.Context(), item)
-				if err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
-				}
+	for _, data := range fromClient {
+		if data.OwnerID != sessUserID {
+			log.Info().Msg("user tried to sync data that doesn't belong to him")
+			continue
+		}
+		if data.DeletedAt > 0 {
+			err = h.storage.Delete(r.Context(), data.ID)
+			if err != nil {
+				log.Err(err).Msg("failed to delete data")
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
 			}
-		}
-	}
-
-	// If client sent data, we need to check if it's newer than the one we have
-	if len(newSyncRequest.ToDelete) != 0 {
-		// Get all data from db
-		var storedData models.PackedUserData
-		storedData, err = h.storage.GetData(r.Context(), sessUserID)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		for _, slice := range storedData {
-			for _, item := range slice {
-				if !utils.Contains(newSyncRequest.ToDelete, item.GetDataID()) {
-					err = h.storage.Delete(r.Context(), item.GetDataID())
-					if err != nil {
-						http.Error(w, err.Error(), http.StatusInternalServerError)
-						return
-					}
-				}
+		} else {
+			err = h.storage.SetData(r.Context(), data)
+			if err != nil {
+				log.Err(err).Msg("failed to upsert data")
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
 			}
 		}
 	}
@@ -118,5 +107,9 @@ func (h *handler) SyncUserData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write(marshalledData)
+	_, err = w.Write(marshalledData)
+	if err != nil {
+		log.Err(err).Msg("failed to write response")
+		return
+	}
 }

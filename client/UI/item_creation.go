@@ -3,11 +3,14 @@ package UI
 import (
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/gynshu-one/goph-keeper/client/config"
 	"github.com/gynshu-one/goph-keeper/shared/models"
 	"github.com/rivo/tview"
+	"github.com/zalando/go-keyring"
 	"io"
 	"os"
+	"time"
 )
 
 func (u *ui) text() *tview.Form {
@@ -30,11 +33,11 @@ func (u *ui) text() *tview.Form {
 				u.pages.AddAndSwitchToPage("error", u.errorModal(fmt.Errorf("text is empty"), "text"), true)
 				return
 			}
-			if err := u.storage.Add(data); err != nil {
-				u.pages.AddAndSwitchToPage("error", u.errorModal(err, "text"), true)
+			err := u.encryptSave(data)
+			if err != nil {
+				u.pages.AddAndSwitchToPage("error", u.errorModal(fmt.Errorf("failed to add"), "text"), true)
 				return
 			}
-			u.mediator.Sync(context.Background())
 			u.pages.AddAndSwitchToPage("ok", u.success(), true)
 			return
 		}).AddButton("Back", func() {
@@ -80,12 +83,11 @@ func (u *ui) bankCard() *tview.Form {
 				u.pages.AddAndSwitchToPage("error", u.errorModal(fmt.Errorf("text is empty"), "bank_card"), true)
 				return
 			}
-			err := u.storage.Add(data)
+			err := u.encryptSave(data)
 			if err != nil {
 				u.pages.AddAndSwitchToPage("error", u.errorModal(fmt.Errorf("failed to add"), "bank_card"), true)
 				return
 			}
-			u.mediator.Sync(context.Background())
 			u.pages.AddAndSwitchToPage("ok", u.success(), true)
 			return
 		}).AddButton("Back", func() {
@@ -96,7 +98,7 @@ func (u *ui) bankCard() *tview.Form {
 }
 
 func (u *ui) binary() *tview.Form {
-	var data = &models.Binary{OwnerID: config.CurrentUser.Username}
+	var data = &models.Binary{}
 	path := ""
 	form := tview.NewForm().
 		AddInputField("Name", "", 30, func(in string, last rune) bool {
@@ -115,11 +117,19 @@ func (u *ui) binary() *tview.Form {
 			file, err := os.Open(path)
 			if err != nil {
 				u.pages.AddAndSwitchToPage("error", u.errorModal(err, "binary"), true)
+				return
 			}
-			defer file.Close()
+			defer func(file *os.File) {
+				err = file.Close()
+				if err != nil {
+					u.pages.AddAndSwitchToPage("error", u.errorModal(err, "binary"), true)
+					return
+				}
+			}(file)
 			readAll, err := io.ReadAll(file)
 			if err != nil {
 				u.pages.AddAndSwitchToPage("error", u.errorModal(err, "binary"), true)
+				return
 			}
 			data.Binary = readAll
 			if len(data.Binary) == 0 {
@@ -130,12 +140,11 @@ func (u *ui) binary() *tview.Form {
 				u.pages.AddAndSwitchToPage("error", u.errorModal(fmt.Errorf("name is empty"), "binary"), true)
 				return
 			}
-			err = u.storage.Add(data)
+			err = u.encryptSave(data)
 			if err != nil {
 				u.pages.AddAndSwitchToPage("error", u.errorModal(fmt.Errorf("failed to add"), "binary"), true)
 				return
 			}
-			u.mediator.Sync(context.Background())
 			u.pages.AddAndSwitchToPage("ok", u.success(), true)
 			return
 		}).AddButton("Back", func() {
@@ -185,12 +194,11 @@ func (u *ui) login() *tview.Form {
 				u.pages.AddAndSwitchToPage("error", u.errorModal(fmt.Errorf("password is empty"), "login"), true)
 				return
 			}
-			err := u.storage.Add(data)
+			err := u.encryptSave(data)
 			if err != nil {
-				u.pages.AddAndSwitchToPage("error", u.errorModal(fmt.Errorf("failed to add"), "login"), true)
+				u.pages.AddAndSwitchToPage("error", u.errorModal(fmt.Errorf("failed to add"), "text"), true)
 				return
 			}
-			u.mediator.Sync(context.Background())
 			u.pages.AddAndSwitchToPage("ok", u.success(), true)
 			return
 		}).AddButton("Back", func() {
@@ -198,4 +206,33 @@ func (u *ui) login() *tview.Form {
 	})
 	form.SetBorder(true).SetTitle("Add login").SetTitleAlign(tview.AlignLeft)
 	return form
+}
+
+// encryptSave encrypts data and saves it to the storage
+// by creating models.UserDataModel struct and adding it to the storage
+func (u *ui) encryptSave(data models.DataModeler) error {
+	pass, err := keyring.Get(config.ServiceName, config.CurrentUser.Username)
+	if err != nil {
+		return err
+	}
+	encrypted, err := data.EncryptAll(pass)
+	if err != nil {
+		return err
+	}
+	t := time.Now().Unix()
+
+	readyToShip := models.UserDataModel{
+		OwnerID:   config.CurrentUser.Username,
+		ID:        uuid.NewString(),
+		CreatedAt: t,
+		UpdatedAt: t,
+		DeletedAt: 0,
+		Data:      encrypted,
+	}
+
+	if err = u.storage.Add(readyToShip); err != nil {
+		return err
+	}
+	u.mediator.Sync(context.Background())
+	return nil
 }

@@ -3,7 +3,6 @@ package utils
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"github.com/gynshu-one/goph-keeper/shared/models"
 	"math/rand"
 	"net/mail"
 )
@@ -44,13 +43,4 @@ func GenRandomString(n int) string {
 
 	// Return the random string as a string.
 	return string(b)
-}
-
-func Contains(slice []models.UserDataID, target models.UserDataID) bool {
-	for _, s := range slice {
-		if s == target {
-			return true
-		}
-	}
-	return false
 }

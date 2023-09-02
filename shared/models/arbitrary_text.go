@@ -22,6 +22,10 @@ type ArbitraryText struct {
 	UpdatedAt int64 `json:"updated_at" bson:"updated_at"`
 }
 
+func (data *ArbitraryText) GetName() string {
+	return data.Name
+}
+
 func (data *ArbitraryText) EncryptAll(passphrase string) error {
 	encryptedText, err := utils.EncryptData([]byte(data.Text), passphrase)
 	if err != nil {

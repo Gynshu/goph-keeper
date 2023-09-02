@@ -4,6 +4,7 @@ start_server:
 	cd shared/cert && ./gen_keys.sh
 	@#go run main.go
 
-build_client:
+run:
 	@echo "Building client..."
 	go build -o ./client_cmd ./client/cmd/main.go
+	./client_cmd

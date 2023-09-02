@@ -2,16 +2,16 @@ package sync
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"github.com/go-resty/resty/v2"
 	"github.com/gynshu-one/goph-keeper/client/config"
 	"github.com/gynshu-one/goph-keeper/client/storage"
 	"github.com/gynshu-one/goph-keeper/shared/models"
-	"github.com/rs/zerolog/log"
+	"github.com/zalando/go-keyring"
 	"net/http"
 	"os"
-	"time"
 )
 
 const (
@@ -32,23 +32,27 @@ type mediator struct {
 }
 
 func NewMediator(storage storage.Storage) Mediator {
-	return &mediator{
-		client:  resty.New(),
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	md := &mediator{
+		client:  resty.NewWithClient(&http.Client{Transport: tr}),
 		storage: storage,
 	}
+	return md
 }
 func (m *mediator) SignUp(ctx context.Context, username, password string) error {
 	if username == "" || password == "" {
 		return fmt.Errorf("username or password is empty")
 	}
 	get, err := m.client.NewRequest().SetContext(ctx).
-		SetPathParam("email", username).
-		SetPathParam("password", password).Get("https://" + config.GetConfig().ServerIP + RegisterEndpoint)
+		SetQueryParam("email", username).
+		SetQueryParam("password", password).Get("https://" + config.GetConfig().ServerIP + RegisterEndpoint)
 	if err != nil {
 		return err
 	}
 	if get.StatusCode() != 200 {
-		return fmt.Errorf("failed to register, status code: %d", get.StatusCode())
+		return fmt.Errorf("failed to register, status code: %d, and error %s", get.StatusCode(), get.Body())
 	}
 	// read cookie from response
 	cookie := get.Cookies()
@@ -62,6 +66,8 @@ func (m *mediator) SignUp(ctx context.Context, username, password string) error 
 			}
 			config.CurrentUser.Username = username
 			config.CurrentUser.SessionID = c.Value
+			m.createUserSessionFiles()
+			m.Sync(ctx)
 			return nil
 		}
 	}
@@ -73,13 +79,13 @@ func (m *mediator) SignIn(ctx context.Context, username, password string) error 
 		return fmt.Errorf("username or password is empty")
 	}
 	get, err := m.client.NewRequest().SetContext(ctx).
-		SetPathParam("email", username).
-		SetPathParam("password", password).Get("https://" + config.GetConfig().ServerIP + LoginEndpoint)
+		SetQueryParam("email", username).
+		SetQueryParam("password", password).Get("https://" + config.GetConfig().ServerIP + LoginEndpoint)
 	if err != nil {
 		return err
 	}
 	if get.StatusCode() != 200 {
-		return fmt.Errorf("failed to login, status code: %d", get.StatusCode())
+		return fmt.Errorf("failed to login, status code: %d and response %s", get.StatusCode(), get.Body())
 	}
 	// read cookie from response
 	cookie := get.Cookies()
@@ -90,6 +96,8 @@ func (m *mediator) SignIn(ctx context.Context, username, password string) error 
 		if c.Name == "session_id" {
 			config.CurrentUser.Username = username
 			config.CurrentUser.SessionID = c.Value
+			m.createUserSessionFiles()
+			m.Sync(ctx)
 			return nil
 		}
 	}
@@ -97,177 +105,67 @@ func (m *mediator) SignIn(ctx context.Context, username, password string) error 
 }
 
 func (m *mediator) Sync(ctx context.Context) {
-	pollTimer := time.NewTimer(config.GetConfig().PollTimer)
-	dumpTimer := time.NewTimer(config.GetConfig().DumpTimer)
-
-	for {
-		select {
-		case <-ctx.Done():
-			err := m.dumpToFile()
-			if err != nil {
-				log.Err(err).Msg("failed to dump data to file")
-			}
-			return
-		case <-dumpTimer.C:
-			err := m.dumpToFile()
-			if err != nil {
-				log.Err(err).Msg("failed to dump data to file")
-			}
-		case <-pollTimer.C:
-			m.sync(ctx)
-		}
-	}
-}
-
-func (m *mediator) dumpToFile() error {
-	data := m.storage.Get()
-
-	marshaled, err := json.Marshal(data)
+	var req models.SyncRequest
+	req.ToDelete = []models.UserDataID{}
+	req.ToUpdate = m.storage.Get()
+	marshaledRequest, err := json.Marshal(req)
 	if err != nil {
-		log.Trace().Msg("failed to marshal data")
-		return err
-	}
-
-	thisDir, err := os.Getwd()
-	if err != nil {
-		log.Trace().Msg("failed to get working directory")
-		return err
-	}
-
-	// create folder goph-keeper-data if it doesn't exist
-	_, err = os.Stat(thisDir + config.GetConfig().CacheFolder)
-	if os.IsNotExist(err) {
-		err = os.Mkdir(thisDir+config.GetConfig().CacheFolder, os.ModePerm)
-		if err != nil {
-			log.Trace().Msg("failed to create data-keeper folder")
-			return err
-		}
-	}
-
-	year, month, day := time.Now().Date()
-
-	minute, hour, sec := time.Now().Clock()
-
-	var fileName = fmt.Sprintf("%d-%d-%d-%d-%d-%d.json", year, month, day, hour, minute, sec)
-
-	file, err := os.Create(thisDir + config.GetConfig().CacheFolder + "/" + fileName)
-	if err != nil {
-		log.Trace().Msg("failed to create file")
-		// if file exists, try to open it
-		file, err = os.OpenFile(thisDir+config.GetConfig().CacheFolder+"/"+fileName, os.O_APPEND|os.O_WRONLY, os.ModePerm)
-		if err != nil {
-			log.Trace().Msg("failed to open file")
-			return err
-		}
-		// if file is opened, write to it
-		_, err = file.Write(marshaled)
-		if err != nil {
-			log.Trace().Msg("failed to write to file")
-			return err
-		}
-		return err
-	}
-	return nil
-}
-
-func (m *mediator) loadFromFile() error {
-	thisDir, err := os.Getwd()
-	if err != nil {
-		log.Trace().Msg("failed to get working directory")
-		return err
-	}
-
-	_, err = os.Stat(thisDir + config.GetConfig().CacheFolder)
-	if os.IsNotExist(err) {
-		log.Trace().Msgf("%s folder doesn't exist", config.GetConfig().CacheFolder)
-	}
-	files, err := os.ReadDir(thisDir + config.GetConfig().CacheFolder)
-	if err != nil {
-		log.Trace().Msg("failed to read data-keeper folder")
-		return err
-	}
-	var latestTime time.Time
-	var latestFile string
-
-	// loop files in data-keeper folder
-	for _, file := range files {
-		if file.IsDir() {
-			continue
-		}
-
-		fileInfo, err := os.Stat(thisDir + config.GetConfig().CacheFolder + "/" + file.Name())
-		if err != nil {
-			log.Trace().Msg("failed to get file info")
-			continue
-		}
-		modTime := fileInfo.ModTime()
-		if modTime.After(latestTime) {
-			latestTime = modTime
-			latestFile = file.Name()
-		}
-	}
-
-	// open latest file
-	file, err := os.Open(thisDir + config.GetConfig().CacheFolder + "/" + latestFile)
-	if err != nil {
-		log.Trace().Msg("failed to open latest file")
-		return err
-	}
-
-	var data = make(models.PackedUserData)
-	err = json.NewDecoder(file).Decode(&data)
-	if err != nil {
-		log.Trace().Msg("failed to decode data")
-		return err
-	}
-
-	err = m.storage.Put(data)
-	if err != nil {
-		log.Trace().Msg("failed to put data")
-		return err
-	}
-	return nil
-}
-
-func (m *mediator) sync(ctx context.Context) {
-	localData := m.storage.Get()
-	if len(localData) == 0 {
+		config.ErrChan <- err
 		return
 	}
-
 	// send data to server
 	response, err := m.client.NewRequest().SetContext(ctx).
-		SetBody(localData).SetCookie(&http.Cookie{
+		SetBody(marshaledRequest).SetCookie(&http.Cookie{
 		Name:  "session_id",
 		Value: config.CurrentUser.SessionID,
-	}).Get("https://" + config.GetConfig().ServerIP + SyncEndpoint)
+	}).Post("https://" + config.GetConfig().ServerIP + SyncEndpoint)
 	if err != nil {
-		log.Err(err).Msg("failed to send data to server")
+		config.ErrChan <- err
 		return
 	}
-	if response.StatusCode() != 200 {
-		log.Trace().Msgf("failed to send data to server, status code: %d", response.StatusCode())
-		return
-	}
-
-	defer response.RawBody().Close()
-	decoder := json.NewDecoder(response.RawBody())
-
-	var serverData models.PackedUserData
-	// check fi body is empty or not
-	if err = decoder.Decode(&serverData); err != nil {
-		if err.Error() == "EOF" {
-			log.Info().Msg("server data is empty")
-			serverData = make(models.PackedUserData)
-		} else {
-			log.Err(err).Msg("failed to decode data")
+	if response.StatusCode() == http.StatusUnauthorized {
+		pass, err_ := keyring.Get(config.ServiceName, config.CurrentUser.Username)
+		if err_ != nil {
+			return
+		}
+		err_ = m.SignIn(ctx, config.CurrentUser.Username, pass)
+		if err_ != nil {
 			return
 		}
 	}
 
+	if response.StatusCode() == http.StatusNoContent {
+		return
+	}
+
+	var serverData = make(models.PackedUserData)
+	// check fi body is empty or not
+	if err = json.Unmarshal(response.Body(), &serverData); err != nil {
+		if err.Error() == "EOF" {
+			config.ErrChan <- err
+			serverData = nil
+		} else {
+			config.ErrChan <- err
+		}
+	}
 	err = m.storage.Put(serverData)
 	if err != nil {
-		log.Err(err).Msg("failed to put data")
+		config.ErrChan <- err
 		return
+	}
+}
+
+func (m *mediator) createUserSessionFiles() {
+	// create session_id file
+	file, err := os.Create(config.TempDir + "/" + config.SessionFile)
+	if err != nil {
+		config.ErrChan <- err
+	}
+	defer file.Close()
+
+	// write session_id to file
+	_, err = file.WriteString(config.CurrentUser.SessionID + "\n" + config.CurrentUser.Username)
+	if err != nil {
+		config.ErrChan <- err
 	}
 }

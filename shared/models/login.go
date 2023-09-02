@@ -34,6 +34,10 @@ type Login struct {
 	UpdatedAt int64 `json:"updated_at" bson:"updated_at"`
 }
 
+func (data *Login) GetName() string {
+	return data.Name
+}
+
 // EncryptAll encrypts all sensitive data
 func (data *Login) EncryptAll(passphrase string) error {
 	encryptedPassword, err := utils.EncryptData([]byte(data.Password), passphrase)

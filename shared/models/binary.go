@@ -24,6 +24,10 @@ type Binary struct {
 	UpdatedAt int64 `json:"updated_at" bson:"updated_at"`
 }
 
+func (data *Binary) GetName() string {
+	return data.Name
+}
+
 // EncryptAll encrypts all sensitive data
 func (data *Binary) EncryptAll(passphrase string) error {
 	encryptedBinary, err := utils.EncryptData(data.Binary, passphrase)

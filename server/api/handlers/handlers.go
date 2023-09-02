@@ -7,6 +7,7 @@ import (
 	"github.com/gynshu-one/goph-keeper/shared/models"
 	"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/mongo"
+	"io"
 	"net/http"
 )
 
@@ -36,20 +37,7 @@ func NewHandlers(db *mongo.Database, storage storage.Storage) *handler {
 // If client didn't send any data, all data from server is returned
 // All new data is added to the db all existing data is updated by the newest one
 // If some data is missing from the client, it will be deleted from the db
-// Data's sensitive fields should be encrypted and passed as json
-// {		"type: "login",
-//
-//		"data: {
-//		"type": "login",
-//		"owner_id": "email",
-//		"name": *****",
-//		"info": "*****",
-//		"username": "*****",
-//		"password": "*****",
-//		"one_time_origin": "*****"
-//		"created_at": unix timestamp,
-//		"updated_at": unix timestamp
-//	}
+// Data's sensitive fields should be encrypted and passed as json models.SyncRequest
 func (h *handler) SyncUserData(w http.ResponseWriter, r *http.Request) {
 	session, err := FindSession(r)
 	if err != nil {
@@ -59,68 +47,72 @@ func (h *handler) SyncUserData(w http.ResponseWriter, r *http.Request) {
 
 	userID := session.GetUserID()
 
-	decoder := json.NewDecoder(r.Body)
 	defer r.Body.Close()
 
-	var data models.PackedUserData
+	var newSyncRequest = models.NewSyncRequest()
 
-	// check fi body is empty or not
-	if err = decoder.Decode(&data); err != nil {
+	rAll, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	err = json.Unmarshal(rAll, &newSyncRequest)
+	if err != nil {
 		if err.Error() == "EOF" {
-			data = make(models.PackedUserData)
+
 		} else {
+			log.Debug().Err(err).Msg("failed to decode data")
 			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
 		}
 	}
 
 	sessUserID := session.GetUserID()
 
+	if newSyncRequest.ToUpdate != nil {
+		for _, slice := range newSyncRequest.ToUpdate {
+			for _, item := range slice {
+				err = h.storage.SetData(r.Context(), item)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+			}
+		}
+	}
+
 	// If client sent data, we need to check if it's newer than the one we have
-	if len(data) != 0 {
+	if len(newSyncRequest.ToDelete) != 0 {
 		// Get all data from db
-		var storedData map[models.UserDataID]models.UserDataModel
+		var storedData models.PackedUserData
 		storedData, err = h.storage.GetData(r.Context(), sessUserID)
 		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-
-		// Loop
-		for _, v := range data {
-			for _, item := range v {
-				// If item is owned by the user
-				if item.GetOrSetOwnerID(&sessUserID) == sessUserID {
-					// If item is not in db, delete it
-					if _, ok := storedData[item.GetDataID()]; !ok {
-						err = h.storage.Delete(r.Context(), item.GetDataID())
-						if err != nil {
-							log.Err(err).Msg("failed to delete data")
-						}
-					} else {
-						// If item is in db, check if it's newer
-						if item.GetUpdatedAt() > storedData[item.GetDataID()].GetUpdatedAt() {
-							err = h.storage.SetData(r.Context(), item.GetType(), item)
-							if err != nil {
-								log.Err(err).Msg("failed to set data")
-							}
-						}
+		for _, slice := range storedData {
+			for _, item := range slice {
+				if !utils.Contains(newSyncRequest.ToDelete, item.GetDataID()) {
+					err = h.storage.Delete(r.Context(), item.GetDataID())
+					if err != nil {
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						return
 					}
 				}
 			}
 		}
 	}
 
-	allData, err := h.storage.GetData(r.Context(), userID)
+	storedData, err := h.storage.GetData(r.Context(), userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if len(allData) == 0 {
-		http.Error(w, ErrNoDataFound.Error(), http.StatusNotFound)
+	if len(storedData) == 0 {
+		http.Error(w, ErrNoDataFound.Error(), http.StatusNoContent)
 	}
 
-	marshalledData, err := json.Marshal(utils.PackData(allData))
+	marshalledData, err := json.Marshal(storedData)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

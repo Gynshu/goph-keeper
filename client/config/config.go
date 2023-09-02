@@ -6,13 +6,12 @@ import (
 	"github.com/rs/zerolog/log"
 	"io"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 )
 
 var instance *config
-var ExPath = ""
+var TempDir = ""
 var CurrentUser = struct {
 	Username  string
 	SessionID string
@@ -21,54 +20,50 @@ var CurrentUser = struct {
 	SessionID: "",
 }
 
+var ErrChan = make(chan error)
+
 const (
-	ServiceName      = "goph-keeper"
-	gophKeeperFolder = "goph-keeper"
-	cacheFolder      = "goph-keeper/cache"
-	configFile       = "goph-keeper/config.json"
-	sessionIDFile    = "goph-keeper/session_id"
+	ServiceName = "goph-keeper"
+	cacheFolder = "goph-keeper/cache"
+	CfgFile     = "goph-keeper/config.json"
+	SessionFile = "goph-keeper/session_id"
 )
 
 func init() {
-	ex, err := os.Executable()
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to get executable path")
-	}
-	ExPath = filepath.Dir(ex)
-
+	TempDir = os.TempDir()
 	// create if not exists folder user-data
-	_, err = os.Stat(ExPath + "/" + gophKeeperFolder)
+	_, err := os.Stat(TempDir + "/" + ServiceName)
 	if os.IsNotExist(err) {
 		// only owner can read and write data
-		err = os.Mkdir(ExPath+"/"+gophKeeperFolder, 744)
+		err = os.Mkdir(TempDir+"/"+ServiceName, 744)
 		if err != nil {
 			log.Fatal().Msg("Failed to create folder user-data")
 		}
 	}
 
-	_, err = os.Stat(ExPath + "/" + cacheFolder)
+	_, err = os.Stat(TempDir + "/" + cacheFolder)
 	if os.IsNotExist(err) {
-		err = os.Mkdir(ExPath+"/"+cacheFolder, 744)
+		err = os.Mkdir(TempDir+"/"+cacheFolder, 744)
 		if err != nil {
-			log.Fatal().Msg("Failed to create folder user-data")
+			log.Fatal().Msg("Failed to create folder cache")
 		}
 	}
 
 	// check if config file exists
-	_, err = os.Stat(ExPath + "/" + configFile)
+	_, err = os.Stat(TempDir + "/" + CfgFile)
 	if os.IsNotExist(err) {
 		// create config file
-		_, err = os.Create(ExPath + "/" + configFile)
+		_, err = os.Create(TempDir + "/" + CfgFile)
 		if err != nil {
 			log.Fatal().Msg("Failed to create config file")
 		}
 	}
 
 	// check if session_id file exists
-	_, err = os.Stat(ExPath + "/" + sessionIDFile)
+	_, err = os.Stat(TempDir + "/" + SessionFile)
 	if err == nil {
 		// open read text
-		file, err_ := os.Open(ExPath + "/" + sessionIDFile)
+		file, err_ := os.Open(TempDir + "/" + SessionFile)
 		if err_ != nil {
 			log.Fatal().Msg("Failed to open session_id file")
 		}

@@ -18,7 +18,7 @@ const (
 
 type BankCard struct {
 	// ID is the primary key
-	ID string `json:"id" bson:"id"`
+	ID string `json:"id" bson:"_id"`
 	// OwnerID is the user who owns this text
 	OwnerID string `json:"owner_id" bson:"ownerID"`
 	// Name is the name of the bank
@@ -41,6 +41,9 @@ type BankCard struct {
 	UpdatedAt int64 `json:"updated_at" bson:"updatedAt"`
 }
 
+func (data *BankCard) GetName() string {
+	return data.Name
+}
 func (data *BankCard) EncryptAll(passphrase string) error {
 	encryptedCardNum, err := utils.EncryptData([]byte(string(data.CardNum)), passphrase)
 	if err != nil {

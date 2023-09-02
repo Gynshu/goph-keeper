@@ -20,17 +20,6 @@ func HashMasterKey(masterKey string) string {
 	return hex.EncodeToString(hashedMasterKey[:])
 }
 
-// GenerateMasterKeyForUser generates a new master key for a user
-func GenerateMasterKeyForUser() (string, error) {
-	key := make([]byte, 32)
-	_, err := rand.Read(key)
-	if err != nil {
-		return "", err
-	}
-	hashedKey := sha256.Sum256(key)
-	return hex.EncodeToString(hashedKey[:]), nil
-}
-
 // ValidateEmail validates an email
 func ValidateEmail(email string) bool {
 	_, err := mail.ParseAddress(email)
@@ -38,15 +27,6 @@ func ValidateEmail(email string) bool {
 		return false
 	}
 	return true
-}
-
-func PackData(allData map[models.UserDataID]models.UserDataModel) models.PackedUserData {
-	var out = make(models.PackedUserData)
-	for i := range allData {
-		out[allData[i].GetType()] = append(out[allData[i].GetType()],
-			allData[i])
-	}
-	return out
 }
 
 // GenRandomString generates a random string of length n
@@ -64,4 +44,13 @@ func GenRandomString(n int) string {
 
 	// Return the random string as a string.
 	return string(b)
+}
+
+func Contains(slice []models.UserDataID, target models.UserDataID) bool {
+	for _, s := range slice {
+		if s == target {
+			return true
+		}
+	}
+	return false
 }

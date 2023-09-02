@@ -17,8 +17,8 @@ type storage struct {
 }
 
 type Storage interface {
-	GetData(ctx context.Context, userID string) (map[models.UserDataID]models.UserDataModel, error)
-	SetData(ctx context.Context, userDataType models.UserDataType, data models.UserDataModel) error
+	GetData(ctx context.Context, userID string) (models.PackedUserData, error)
+	SetData(ctx context.Context, data models.UserDataModel) error
 	Delete(ctx context.Context, id models.UserDataID) error
 }
 
@@ -31,15 +31,22 @@ func NewStorage(db *mongo.Database) *storage {
 
 // SetData sets the model with the given id
 // if it exists it will be updated, otherwise it will be created.
-func (s *storage) SetData(ctx context.Context, userDataType models.UserDataType, data models.UserDataModel) error {
+func (s *storage) SetData(ctx context.Context, data models.UserDataModel) error {
 	if data.GetDataID() == "" {
 		data.MakeID()
 	}
+
 	// create a new document in mongo
-	_, err := s.db.Collection(string(userDataType)).InsertOne(ctx, data)
+	_, err := s.db.Collection(string(data.GetType())).InsertOne(ctx, data)
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
-			_, err = s.db.Collection("goph-keeper").ReplaceOne(ctx, bson.M{"_id": data.GetDataID()}, data)
+			filter := bson.D{
+				{"_id", data.GetDataID()},
+				{"owner_id", data.GetOrSetOwnerID(nil)},
+				{"updated_at", bson.D{{"$lt", data.GetUpdatedAt()}}}}
+
+			_, err = s.db.Collection("goph-keeper").ReplaceOne(ctx, filter, data)
+
 		}
 	}
 	return err
@@ -54,49 +61,40 @@ func (s *storage) Delete(ctx context.Context, id models.UserDataID) error {
 	return err
 }
 
-func (s *storage) GetData(ctx context.Context, userID string) (result map[models.UserDataID]models.UserDataModel, err error) {
+func (s *storage) GetData(ctx context.Context, userID string) (result models.PackedUserData, err error) {
+	result = make(models.PackedUserData)
 	for _, userDataType := range models.UserDataTypes {
 		var res *mongo.Cursor
 		res, err = s.db.Collection(string(userDataType)).Find(ctx, bson.D{{"owner_id", userID}})
 		if err != nil {
 			return
 		}
-		for res.Next(ctx) {
-			var decoded models.UserDataModel
-			decoded, err = decode(res, userDataType)
-			if err != nil {
-				return
+		switch userDataType {
+		case models.BinaryType:
+			var binary []models.Binary
+			err = res.Decode(&binary)
+			for _, bin := range binary {
+				result[models.BinaryType] = append(result[models.BinaryType], &bin)
 			}
-			result[decoded.GetDataID()] = decoded
-
-			if res.TryNext(ctx) == false {
-				break
+		case models.ArbitraryTextType:
+			var arbitraryText []models.ArbitraryText
+			err = res.Decode(&arbitraryText)
+			for _, text := range arbitraryText {
+				result[models.ArbitraryTextType] = append(result[models.ArbitraryTextType], &text)
+			}
+		case models.BankCardType:
+			var bankCard []models.BankCard
+			err = res.Decode(&bankCard)
+			for _, card := range bankCard {
+				result[models.BankCardType] = append(result[models.BankCardType], &card)
+			}
+		case models.LoginType:
+			var login []models.Login
+			err = res.Decode(&login)
+			for _, log := range login {
+				result[models.LoginType] = append(result[models.LoginType], &log)
 			}
 		}
 	}
 	return result, err
-}
-
-func decode(decoder mongoDecoder, userDataType models.UserDataType) (data models.UserDataModel, err error) {
-	switch userDataType {
-	case models.BinaryType:
-		var binary models.Binary
-		err = decoder.Decode(&binary)
-		return &binary, err
-	case models.ArbitraryTextType:
-		var arbitraryText models.ArbitraryText
-		err = decoder.Decode(&arbitraryText)
-		return &arbitraryText, err
-	case models.BankCardType:
-		var bankCard models.BankCard
-		err = decoder.Decode(&bankCard)
-		return &bankCard, err
-	case models.LoginType:
-		var login models.Login
-		err = decoder.Decode(&login)
-		return &login, err
-	default:
-		err = ErrObjectMiss
-	}
-	return nil, err
 }

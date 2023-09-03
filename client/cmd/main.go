@@ -28,18 +28,6 @@ func main() {
 			"Config should be in json format and contain SERVER_IP, POLL_TIMER, DUMP_TIMER")
 	}
 
-	//// set password
-	//err := keyring.Set(service, user, password)
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//
-	//// get password
-	//secret, err := keyring.Get(service, user)
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-
 	app := tview.NewApplication()
 	newUI := UI.NewUI(app)
 

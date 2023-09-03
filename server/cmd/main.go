@@ -36,7 +36,7 @@ func main() {
 	db := client.Database("goph-keeper")
 
 	// init storage
-	newStorage := storage.NewStorage(db)
+	newStorage := storage.NewStorage(db.Collection("user-data"))
 
 	// init handlers
 	handlers := server.NewHandlers(db, newStorage)

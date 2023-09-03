@@ -18,3 +18,10 @@ type UserDataModel struct {
 	DeletedAt int64  `json:"deleted_at" bson:"deleted_at"`
 	Data      []byte `json:"data" bson:"data"`
 }
+
+const (
+	ArbitraryTextType = "arbitrary_text"
+	BankCardType      = "bank_card"
+	BinaryType        = "binary"
+	LoginType         = "login"
+)

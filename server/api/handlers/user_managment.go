@@ -2,9 +2,9 @@ package handlers
 
 import (
 	"errors"
+	"github.com/gynshu-one/goph-keeper/common/models"
 	auth "github.com/gynshu-one/goph-keeper/server/api/auth"
 	"github.com/gynshu-one/goph-keeper/server/api/utils"
-	"github.com/gynshu-one/goph-keeper/shared/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"

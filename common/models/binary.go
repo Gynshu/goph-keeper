@@ -2,7 +2,7 @@ package models
 
 import (
 	"encoding/json"
-	"github.com/gynshu-one/goph-keeper/shared/utils"
+	"github.com/gynshu-one/goph-keeper/common/utils"
 )
 
 type Binary struct {

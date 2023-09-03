@@ -4,11 +4,16 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha256"
 	"io"
 )
 
 // EncryptData encrypts data (Any length from 1 to ~) using a user's master key
 func EncryptData(data []byte, key string) ([]byte, error) {
+	key, err := deriveAESKey(key)
+	if err != nil {
+		return nil, err
+	}
 	// Generate a new AES cipher using the master key
 	c, err := aes.NewCipher([]byte(key))
 	if err != nil {
@@ -35,6 +40,10 @@ func EncryptData(data []byte, key string) ([]byte, error) {
 
 // DecryptData decrypts data (any length from 1 to ~) using a user's master key
 func DecryptData(ciphertext []byte, key string) ([]byte, error) {
+	key, err := deriveAESKey(key)
+	if err != nil {
+		return nil, err
+	}
 	// Generate a new AES cipher using the master key
 	c, err := aes.NewCipher([]byte(key))
 	if err != nil {
@@ -59,4 +68,15 @@ func DecryptData(ciphertext []byte, key string) ([]byte, error) {
 		return nil, err
 	}
 	return plaintext, nil
+}
+
+func deriveAESKey(userKey string) (string, error) {
+	// Hash the user-provided key using SHA-256 to generate a 256-bit key
+	hasher := sha256.New()
+	_, err := hasher.Write([]byte(userKey))
+	if err != nil {
+		return "", err
+	}
+	derivedKey := hasher.Sum(nil)
+	return string(derivedKey), nil
 }

@@ -8,7 +8,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/gynshu-one/goph-keeper/client/config"
 	"github.com/gynshu-one/goph-keeper/client/storage"
-	"github.com/gynshu-one/goph-keeper/shared/models"
+	"github.com/gynshu-one/goph-keeper/common/models"
 	"github.com/zalando/go-keyring"
 	"net/http"
 	"os"

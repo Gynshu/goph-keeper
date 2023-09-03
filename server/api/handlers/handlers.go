@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"encoding/json"
+	"github.com/gynshu-one/goph-keeper/common/models"
 	"github.com/gynshu-one/goph-keeper/server/storage"
-	"github.com/gynshu-one/goph-keeper/shared/models"
 	"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/mongo"
 	"io"

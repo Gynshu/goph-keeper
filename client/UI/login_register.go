@@ -41,7 +41,7 @@ func (u *ui) register() *tview.Form {
 				u.pages.AddAndSwitchToPage("error", u.errorModal(err, "register"), true)
 				return
 			}
-			u.pages.SwitchToPage("menu")
+			u.goToMenu()
 			return
 		}).AddButton("SignIn", func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -56,7 +56,7 @@ func (u *ui) register() *tview.Form {
 			u.pages.AddAndSwitchToPage("error", u.errorModal(err, "register"), true)
 			return
 		}
-		u.pages.SwitchToPage("menu")
+		u.goToMenu()
 		return
 	}).AddButton("Quit", func() {
 		u.app.Stop()

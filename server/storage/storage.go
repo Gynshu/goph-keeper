@@ -2,7 +2,8 @@ package storage
 
 import (
 	"context"
-	"github.com/gynshu-one/goph-keeper/shared/models"
+	"github.com/gynshu-one/goph-keeper/common/models"
+	"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -38,6 +39,9 @@ func (s *storage) SetData(ctx context.Context, data models.UserDataModel) error 
 				{"updated_at", bson.D{{"$lt", data.UpdatedAt}}}}
 
 			_, err = s.collection.ReplaceOne(ctx, filter, data)
+			if err != nil {
+				return err
+			}
 
 		}
 	}
@@ -61,6 +65,7 @@ func (s *storage) GetData(ctx context.Context, userID string) (result []models.U
 	defer func(res *mongo.Cursor, ctx context.Context) {
 		err = res.Close(ctx)
 		if err != nil {
+			log.Err(err).Msg("failed to close cursor")
 			return
 		}
 	}(res, ctx)

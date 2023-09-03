@@ -1,16 +1,11 @@
 package UI
 
 import (
-	"context"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/gynshu-one/goph-keeper/client/config"
-	"github.com/gynshu-one/goph-keeper/shared/models"
+	"github.com/gynshu-one/goph-keeper/common/models"
 	"github.com/rivo/tview"
-	"github.com/zalando/go-keyring"
 	"io"
 	"os"
-	"time"
 )
 
 func (u *ui) text() *tview.Form {
@@ -33,17 +28,20 @@ func (u *ui) text() *tview.Form {
 				u.pages.AddAndSwitchToPage("error", u.errorModal(fmt.Errorf("text is empty"), "text"), true)
 				return
 			}
-			err := u.encryptSave(data)
+			err := u.encryptSave(data, models.UserDataModel{
+				Name: data.Name,
+				Type: models.ArbitraryTextType,
+			})
 			if err != nil {
-				u.pages.AddAndSwitchToPage("error", u.errorModal(fmt.Errorf("failed to add"), "text"), true)
+				u.pages.AddAndSwitchToPage("error", u.errorModal(err, "text"), true)
 				return
 			}
-			u.pages.AddAndSwitchToPage("ok", u.success(), true)
+			u.goToMenu()
 			return
 		}).AddButton("Back", func() {
-		u.pages.SwitchToPage("add_items")
+		u.goToMenu()
 	})
-	form.SetBorder(true).SetTitle("Add text").SetTitleAlign(tview.AlignLeft)
+	form.SetBorder(true).SetTitle("Add text").SetTitleAlign(tview.AlignCenter)
 	return form
 }
 
@@ -83,17 +81,20 @@ func (u *ui) bankCard() *tview.Form {
 				u.pages.AddAndSwitchToPage("error", u.errorModal(fmt.Errorf("text is empty"), "bank_card"), true)
 				return
 			}
-			err := u.encryptSave(data)
+			err := u.encryptSave(data, models.UserDataModel{
+				Name: data.Name,
+				Type: models.BankCardType,
+			})
 			if err != nil {
-				u.pages.AddAndSwitchToPage("error", u.errorModal(fmt.Errorf("failed to add"), "bank_card"), true)
+				u.pages.AddAndSwitchToPage("error", u.errorModal(err, "bank_card"), true)
 				return
 			}
-			u.pages.AddAndSwitchToPage("ok", u.success(), true)
+			u.goToMenu()
 			return
 		}).AddButton("Back", func() {
-		u.pages.SwitchToPage("add_items")
+		u.goToMenu()
 	})
-	form.SetBorder(true).SetTitle("Add bank card").SetTitleAlign(tview.AlignLeft)
+	form.SetBorder(true).SetTitle("Add bank card").SetTitleAlign(tview.AlignCenter)
 	return form
 }
 
@@ -140,17 +141,20 @@ func (u *ui) binary() *tview.Form {
 				u.pages.AddAndSwitchToPage("error", u.errorModal(fmt.Errorf("name is empty"), "binary"), true)
 				return
 			}
-			err = u.encryptSave(data)
+			err = u.encryptSave(data, models.UserDataModel{
+				Name: data.Name,
+				Type: models.BinaryType,
+			})
 			if err != nil {
-				u.pages.AddAndSwitchToPage("error", u.errorModal(fmt.Errorf("failed to add"), "binary"), true)
+				u.pages.AddAndSwitchToPage("error", u.errorModal(err, "binary"), true)
 				return
 			}
-			u.pages.AddAndSwitchToPage("ok", u.success(), true)
+			u.goToMenu()
 			return
 		}).AddButton("Back", func() {
-		u.pages.SwitchToPage("add_items")
+		u.goToMenu()
 	})
-	form.SetBorder(true).SetTitle("Add binary").SetTitleAlign(tview.AlignLeft)
+	form.SetBorder(true).SetTitle("Add binary").SetTitleAlign(tview.AlignCenter)
 	return form
 }
 
@@ -194,45 +198,33 @@ func (u *ui) login() *tview.Form {
 				u.pages.AddAndSwitchToPage("error", u.errorModal(fmt.Errorf("password is empty"), "login"), true)
 				return
 			}
-			err := u.encryptSave(data)
+
+			err := u.encryptSave(data, models.UserDataModel{
+				Name: data.Name,
+				Type: models.LoginType,
+			})
+
 			if err != nil {
-				u.pages.AddAndSwitchToPage("error", u.errorModal(fmt.Errorf("failed to add"), "text"), true)
+				u.pages.AddAndSwitchToPage("error", u.errorModal(err, "text"), true)
 				return
 			}
-			u.pages.AddAndSwitchToPage("ok", u.success(), true)
+			u.goToMenu()
 			return
 		}).AddButton("Back", func() {
-		u.pages.SwitchToPage("add_items")
+		u.goToMenu()
 	})
-	form.SetBorder(true).SetTitle("Add login").SetTitleAlign(tview.AlignLeft)
+	form.SetBorder(true).SetTitle("Add login").SetTitleAlign(tview.AlignCenter)
 	return form
 }
 
-// encryptSave encrypts data and saves it to the storage
-// by creating models.UserDataModel struct and adding it to the storage
-func (u *ui) encryptSave(data models.DataModeler) error {
-	pass, err := keyring.Get(config.ServiceName, config.CurrentUser.Username)
-	if err != nil {
-		return err
-	}
-	encrypted, err := data.EncryptAll(pass)
-	if err != nil {
-		return err
-	}
-	t := time.Now().Unix()
-
-	readyToShip := models.UserDataModel{
-		OwnerID:   config.CurrentUser.Username,
-		ID:        uuid.NewString(),
-		CreatedAt: t,
-		UpdatedAt: t,
-		DeletedAt: 0,
-		Data:      encrypted,
-	}
-
-	if err = u.storage.Add(readyToShip); err != nil {
-		return err
-	}
-	u.mediator.Sync(context.Background())
-	return nil
+func (u *ui) AddItemButtons() *tview.Form {
+	return tview.NewForm().AddButton("New Text", func() {
+		u.pages.SwitchToPage("text")
+	}).AddButton("New Bank Card", func() {
+		u.pages.SwitchToPage("bank_card")
+	}).AddButton("New Binary", func() {
+		u.pages.SwitchToPage("binary")
+	}).AddButton("New Login", func() {
+		u.pages.SwitchToPage("login")
+	}).SetButtonsAlign(tview.AlignCenter)
 }

@@ -1,8 +1,7 @@
 package storage
 
 import (
-	"errors"
-	"github.com/gynshu-one/goph-keeper/shared/models"
+	"github.com/gynshu-one/goph-keeper/common/models"
 	"sync"
 )
 
@@ -35,7 +34,7 @@ func (s *storage) Add(data models.UserDataModel) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.repo[data.ID] = data
-	return errors.New("failed to add data")
+	return nil
 }
 
 func (s *storage) Put(data []models.UserDataModel) error {

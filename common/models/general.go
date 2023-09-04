@@ -1,10 +1,15 @@
 package models
 
+// BasicData is an interface for all data types
+// It provides methods to encrypt and decrypt data
 type BasicData interface {
 	EncryptAll(passphrase string) (encryptedData []byte, err error)
 	DecryptAll(passphrase string, encrypteData []byte) error
 }
 
+// DataWrapper is a struct that wraps BasicData and provides additional information about the data
+// such as owner id, type, name, updated_at, created_at, deleted_at
+// it makes easier to store data in the database that shouldn't know anything about the data
 type DataWrapper struct {
 	// ID is the unique identifier of the data
 	ID string `json:"id" bson:"_id"`

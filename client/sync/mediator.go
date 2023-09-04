@@ -32,7 +32,7 @@ type mediator struct {
 	storage storage.Storage
 }
 
-func NewMediator(storage storage.Storage) Mediator {
+func NewMediator(storage storage.Storage) *mediator {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
@@ -71,10 +71,6 @@ func (m *mediator) SignUp(ctx context.Context, username, password string) error 
 			if err != nil {
 				return err
 			}
-			err = m.Sync(ctx)
-			if err != nil {
-				return err
-			}
 			return nil
 		}
 	}
@@ -107,10 +103,6 @@ func (m *mediator) SignIn(ctx context.Context, username, password string) error 
 			if err != nil {
 				return err
 			}
-			err = m.Sync(ctx)
-			if err != nil {
-				return err
-			}
 			return nil
 		}
 	}
@@ -118,7 +110,6 @@ func (m *mediator) SignIn(ctx context.Context, username, password string) error 
 }
 
 func (m *mediator) Sync(ctx context.Context) error {
-	// send data to server
 	response, err := m.client.NewRequest().SetContext(ctx).
 		SetBody(m.storage.Get()).SetCookie(&http.Cookie{
 		Name:  "session_id",
@@ -143,8 +134,12 @@ func (m *mediator) Sync(ctx context.Context) error {
 	}
 
 	var serverData []models.DataWrapper
+	body := response.Body()
+	if len(body) == 0 {
+		return nil
+	}
 	// check fi body is empty or not
-	if err = json.Unmarshal(response.Body(), &serverData); err != nil {
+	if err = json.Unmarshal(body, &serverData); err != nil {
 		if err.Error() == "EOF" {
 			serverData = nil
 			return nil

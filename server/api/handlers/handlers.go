@@ -5,7 +5,6 @@ import (
 	"github.com/gynshu-one/goph-keeper/common/models"
 	"github.com/gynshu-one/goph-keeper/server/storage"
 	"github.com/rs/zerolog/log"
-	"go.mongodb.org/mongo-driver/mongo"
 	"io"
 	"net/http"
 )
@@ -21,13 +20,11 @@ type Handlers interface {
 }
 
 type handler struct {
-	db      *mongo.Database
 	storage storage.Storage
 }
 
-func NewHandlers(db *mongo.Database, storage storage.Storage) *handler {
+func NewHandlers(storage storage.Storage) *handler {
 	return &handler{
-		db:      db,
 		storage: storage,
 	}
 }

@@ -43,27 +43,20 @@ func (data *Login) DecryptAll(passphrase string, encrypteData []byte) error {
 }
 
 // RegisterOneTime registers a new one-time password
-func (data *Login) RegisterOneTime(secret string) (oneTime string, genTime time.Time, err error) {
-	// Replace "your-secret-key" with your actual secret key
-	secretKey := []byte(secret)
+func (data *Login) RegisterOneTime(secret string) (success bool) {
 
-	// Generate a new TOTP configuration
-	key, err := totp.Generate(totp.GenerateOpts{
-		Issuer:      "goph-keeper",
-		AccountName: data.Username,
-		Secret:      secretKey,
-	})
+	o, err := totp.GenerateCode(secret, time.Now())
 	if err != nil {
 		log.Err(err).Msg("Error generating OTP")
-		return "", time.Time{}, err
+		return false
 	}
-	valid := totp.Validate(key.Digits().String(), secret)
+	valid := totp.Validate(o, secret)
 	if !valid {
 		log.Err(err).Msg("Error validating OTP")
-		return "", time.Time{}, err
+		return false
 	}
-	data.OneTimeOrigin = key.Secret()
-	return data.GenerateOneTimePassword()
+	data.OneTimeOrigin = secret
+	return true
 }
 
 // GenerateOneTimePassword generates a new one-time password

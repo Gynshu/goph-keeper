@@ -5,7 +5,6 @@ import (
 	"github.com/gynshu-one/goph-keeper/common/models"
 	auth "github.com/gynshu-one/goph-keeper/server/api/auth"
 	"github.com/gynshu-one/goph-keeper/server/api/utils"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"
 	"time"
@@ -51,7 +50,7 @@ func (h *handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	user.UpdatedAt = time.Now().Unix()
 
 	// Try to create a new user
-	_, err := h.db.Collection("users").InsertOne(r.Context(), user)
+	err := h.storage.CreateUser(r.Context(), user)
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
 			http.Error(w, "user with this email already exists", http.StatusBadRequest)
@@ -75,7 +74,11 @@ func (h *handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		Name:  "session_id",
 		Value: session.ID,
 	})
-	w.Write([]byte(session.ID))
+	_, err = w.Write([]byte(session.ID))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 // LoginUser logs in a user
@@ -95,7 +98,7 @@ func (h *handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.db.Collection("users").FindOne(r.Context(), bson.M{"_id": email}).Decode(&user)
+	user, err := h.storage.GetUser(r.Context(), email)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			http.Error(w, "user not found", http.StatusBadRequest)
@@ -131,7 +134,11 @@ func (h *handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		Name:  "session_id",
 		Value: session.ID,
 	})
-	w.Write([]byte(session.ID))
+	_, err = w.Write([]byte(session.ID))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 // LogoutUser logs out a user

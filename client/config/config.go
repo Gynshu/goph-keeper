@@ -20,8 +20,6 @@ var CurrentUser = struct {
 	SessionID: "",
 }
 
-var ErrChan = make(chan error)
-
 const (
 	ServiceName = "goph-keeper"
 	cacheFolder = "goph-keeper/cache"
@@ -67,7 +65,12 @@ func init() {
 		if err_ != nil {
 			log.Fatal().Msg("Failed to open session_id file")
 		}
-		defer file.Close()
+		defer func(file *os.File) {
+			err = file.Close()
+			if err != nil {
+				log.Fatal().Msg("Failed to close session_id file")
+			}
+		}(file)
 		text, err_ := io.ReadAll(file)
 		if err_ != nil {
 			log.Fatal().Msg("Failed to read session_id file")
@@ -103,7 +106,12 @@ func NewConfig(path string) error {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to open config file")
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		err = file.Close()
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to close config file")
+		}
+	}(file)
 
 	// decode json into struct
 	decoder := json.NewDecoder(file)

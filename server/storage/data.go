@@ -10,18 +10,21 @@ import (
 
 // Storage is a struct that holds a sync.Map to store all models.
 type storage struct {
-	collection *mongo.Collection
+	dataCollection *mongo.Collection
+	userCollection *mongo.Collection
 }
 
 type Storage interface {
 	GetData(ctx context.Context, userID string) ([]models.DataWrapper, error)
 	SetData(ctx context.Context, data models.DataWrapper) error
+	CreateUser(ctx context.Context, user models.User) error
+	GetUser(ctx context.Context, email string) (models.User, error)
 }
 
 // NewStorage returns a new Storage.
 func NewStorage(collection *mongo.Collection) *storage {
 	return &storage{
-		collection: collection,
+		dataCollection: collection,
 	}
 }
 
@@ -29,7 +32,7 @@ func NewStorage(collection *mongo.Collection) *storage {
 // if it exists it will be updated, otherwise it will be created.
 func (s *storage) SetData(ctx context.Context, data models.DataWrapper) error {
 	// create a new document in mongo
-	_, err := s.collection.InsertOne(ctx, data)
+	_, err := s.dataCollection.InsertOne(ctx, data)
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
 			// We have it already
@@ -47,7 +50,7 @@ func (s *storage) SetData(ctx context.Context, data models.DataWrapper) error {
 					{"deleted_at", data.DeletedAt},
 				}},
 			}
-			_, err = s.collection.UpdateOne(ctx, filter, update)
+			_, err = s.dataCollection.UpdateOne(ctx, filter, update)
 			if err != nil {
 				return err
 			}
@@ -58,7 +61,7 @@ func (s *storage) SetData(ctx context.Context, data models.DataWrapper) error {
 
 // GetData returns the all data from database associated with the given user id.
 func (s *storage) GetData(ctx context.Context, userID string) (result []models.DataWrapper, err error) {
-	res, err := s.collection.Find(ctx, bson.D{{"owner_id", userID}})
+	res, err := s.dataCollection.Find(ctx, bson.D{{"owner_id", userID}})
 	if err != nil {
 		return
 	}

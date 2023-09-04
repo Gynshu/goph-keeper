@@ -46,6 +46,7 @@ func newConfig() error {
 	return nil
 }
 
+// GetConfig returns the configuration initialized by newConfig
 func GetConfig() *config {
 	once.Do(func() {
 		err := newConfig()

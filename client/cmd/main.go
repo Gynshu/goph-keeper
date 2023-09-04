@@ -30,8 +30,9 @@ func main() {
 
 	app := tview.NewApplication()
 	newUI := UI.NewUI(app)
+	pages := newUI.Pages()
 
-	if err = app.SetRoot(newUI.Pages(), true).EnableMouse(true).Run(); err != nil {
+	if err = app.SetRoot(pages, true).EnableMouse(true).Run(); err != nil {
 		log.Fatal().Err(err).Msg("Failed to run app")
 	}
 }

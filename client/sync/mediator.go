@@ -9,6 +9,7 @@ import (
 	"github.com/gynshu-one/goph-keeper/client/config"
 	"github.com/gynshu-one/goph-keeper/client/storage"
 	"github.com/gynshu-one/goph-keeper/common/models"
+	"github.com/rs/zerolog/log"
 	"github.com/zalando/go-keyring"
 	"net/http"
 	"os"
@@ -21,7 +22,7 @@ const (
 )
 
 type Mediator interface {
-	Sync(ctx context.Context)
+	Sync(ctx context.Context) error
 	SignUp(ctx context.Context, username, password string) error
 	SignIn(ctx context.Context, username, password string) error
 }
@@ -66,8 +67,14 @@ func (m *mediator) SignUp(ctx context.Context, username, password string) error 
 			}
 			config.CurrentUser.Username = username
 			config.CurrentUser.SessionID = c.Value
-			m.createUserSessionFiles()
-			m.Sync(ctx)
+			err = m.createUserSessionFiles()
+			if err != nil {
+				return err
+			}
+			err = m.Sync(ctx)
+			if err != nil {
+				return err
+			}
 			return nil
 		}
 	}
@@ -96,15 +103,21 @@ func (m *mediator) SignIn(ctx context.Context, username, password string) error 
 		if c.Name == "session_id" {
 			config.CurrentUser.Username = username
 			config.CurrentUser.SessionID = c.Value
-			m.createUserSessionFiles()
-			m.Sync(ctx)
+			err = m.createUserSessionFiles()
+			if err != nil {
+				return err
+			}
+			err = m.Sync(ctx)
+			if err != nil {
+				return err
+			}
 			return nil
 		}
 	}
 	return nil
 }
 
-func (m *mediator) Sync(ctx context.Context) {
+func (m *mediator) Sync(ctx context.Context) error {
 	// send data to server
 	response, err := m.client.NewRequest().SetContext(ctx).
 		SetBody(m.storage.Get()).SetCookie(&http.Cookie{
@@ -112,57 +125,58 @@ func (m *mediator) Sync(ctx context.Context) {
 		Value: config.CurrentUser.SessionID,
 	}).Post("https://" + config.GetConfig().ServerIP + Endpoint)
 	if err != nil {
-		config.ErrChan <- err
-		return
+		return err
 	}
 	if response.StatusCode() == http.StatusUnauthorized {
 		pass, err_ := keyring.Get(config.ServiceName, config.CurrentUser.Username)
 		if err_ != nil {
-			return
+			return err_
 		}
 		err_ = m.SignIn(ctx, config.CurrentUser.Username, pass)
 		if err_ != nil {
-			return
+			return err_
 		}
 	}
 
 	if response.StatusCode() == http.StatusNoContent {
-		return
+		return nil
 	}
 
-	var serverData []models.UserDataModel
+	var serverData []models.DataWrapper
 	// check fi body is empty or not
 	if err = json.Unmarshal(response.Body(), &serverData); err != nil {
 		if err.Error() == "EOF" {
-			config.ErrChan <- err
 			serverData = nil
+			return nil
 		} else {
-			config.ErrChan <- err
+			return err
 		}
 	}
-	err = m.storage.Put(serverData)
+	err = m.storage.Swap(serverData)
 	if err != nil {
-		config.ErrChan <- err
-		return
+		return err
 	}
+	return nil
 }
 
-func (m *mediator) createUserSessionFiles() {
+func (m *mediator) createUserSessionFiles() error {
 	// create session_id file
 	file, err := os.Create(config.TempDir + "/" + config.SessionFile)
 	if err != nil {
-		config.ErrChan <- err
+		return err
 	}
 	defer func(file *os.File) {
 		err = file.Close()
 		if err != nil {
-			config.ErrChan <- err
+			log.Err(err).Msg("failed to close file" + config.SessionFile)
+			return
 		}
 	}(file)
 
 	// write session_id to file
 	_, err = file.WriteString(config.CurrentUser.SessionID + "\n" + config.CurrentUser.Username)
 	if err != nil {
-		config.ErrChan <- err
+		return err
 	}
+	return nil
 }

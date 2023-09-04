@@ -1,11 +1,11 @@
 package models
 
-type DataModeler interface {
+type BasicData interface {
 	EncryptAll(passphrase string) (encryptedData []byte, err error)
 	DecryptAll(passphrase string, encrypteData []byte) error
 }
 
-type UserDataModel struct {
+type DataWrapper struct {
 	// ID is the unique identifier of the data
 	ID string `json:"id" bson:"_id"`
 	// OwnerID is the user who owns this data

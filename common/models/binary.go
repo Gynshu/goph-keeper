@@ -6,8 +6,6 @@ import (
 )
 
 type Binary struct {
-	// Name is the name of the binary
-	Name string `json:"name" bson:"name"`
 	// Info is the additional info about the binary
 	Info string `json:"info" bson:"info"`
 	// Binary is the binary data
@@ -29,5 +27,5 @@ func (data *Binary) DecryptAll(passphrase string, encrypteData []byte) error {
 	if err != nil {
 		return err
 	}
-	return json.Unmarshal(decrypted, data)
+	return json.Unmarshal(decrypted, &data)
 }

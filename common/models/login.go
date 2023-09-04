@@ -12,8 +12,6 @@ import (
 // Login is the model for a login
 // All changes should be done through methods to ensure data consistency and update time
 type Login struct {
-	// Name is the name of the login
-	Name string `json:"name" bson:"name"`
 	// Info is the additional info about the login
 	Info string `json:"info" bson:"info"`
 	// Username is the username
@@ -41,7 +39,7 @@ func (data *Login) DecryptAll(passphrase string, encrypteData []byte) error {
 	if err != nil {
 		return err
 	}
-	return json.Unmarshal(decrypted, data)
+	return json.Unmarshal(decrypted, &data)
 }
 
 // RegisterOneTime registers a new one-time password

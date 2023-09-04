@@ -37,7 +37,7 @@ func NewHandlers(db *mongo.Database, storage storage.Storage) *handler {
 // All new data is added to the db all existing data is updated by the newest one
 // If some data is missing from the client, it will be deleted from the db
 // Data's sensitive fields should be encrypted into binary
-// data should be sent in the []models.UserDataModel format:
+// data should be sent in the []models.DataWrapper format:
 func (h *handler) SyncUserData(w http.ResponseWriter, r *http.Request) {
 	session, err := FindSession(r)
 	if err != nil {
@@ -54,7 +54,7 @@ func (h *handler) SyncUserData(w http.ResponseWriter, r *http.Request) {
 		}
 	}(r.Body)
 
-	var fromClient []models.UserDataModel
+	var fromClient []models.DataWrapper
 
 	decoder := json.NewDecoder(r.Body)
 	err = decoder.Decode(&fromClient)
@@ -74,20 +74,11 @@ func (h *handler) SyncUserData(w http.ResponseWriter, r *http.Request) {
 			log.Info().Msg("user tried to sync data that doesn't belong to him")
 			continue
 		}
-		if data.DeletedAt > 0 {
-			err = h.storage.Delete(r.Context(), data.ID)
-			if err != nil {
-				log.Err(err).Msg("failed to delete data")
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		} else {
-			err = h.storage.SetData(r.Context(), data)
-			if err != nil {
-				log.Err(err).Msg("failed to upsert data")
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
+		err = h.storage.SetData(r.Context(), data)
+		if err != nil {
+			log.Err(err).Msg("failed to upsert data")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 	}
 

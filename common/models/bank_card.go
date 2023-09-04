@@ -6,8 +6,6 @@ import (
 )
 
 type BankCard struct {
-	// Name is the name of the bank
-	Name string `json:"name" bson:"name"`
 	// Info is the additional info about the card
 	Info string `json:"info" bson:"info"`
 	// CardType is the type of card such as Visa, MasterCard, etc.
@@ -35,5 +33,5 @@ func (data *BankCard) DecryptAll(passphrase string, encrypteData []byte) error {
 	if err != nil {
 		return err
 	}
-	return json.Unmarshal(decrypted, data)
+	return json.Unmarshal(decrypted, &data)
 }

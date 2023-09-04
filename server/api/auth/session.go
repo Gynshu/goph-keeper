@@ -10,6 +10,8 @@ import (
 
 var Sessions Manager
 
+// Manager is an interface for managing sessions
+// qex
 type Manager interface {
 	// CreateSession creates a new session for a user
 	// returns a session ID and an error if something went wrong

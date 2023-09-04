@@ -5,6 +5,7 @@ import (
 	"net/http"
 )
 
+// SessionCheck checks if the session is valid
 func SessionCheck(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sessionID := r.Header.Get("Authorization")

@@ -1,10 +1,10 @@
-start_server:
+serve:
 	@echo "Starting server..."
-	sudo chmod +x shared/cert/gen_keys.sh
-	cd shared/cert && ./gen_keys.sh
-	@#go run main.go
+	sudo chmod +x common/cert/gen_keys.sh
+	cd common/cert && ./gen_keys.sh
+	docker-compose up --build -d
 
-run:
+ui:
 	@echo "Building client..."
 	go build -o ./client_cmd ./client/cmd/main.go
 	./client_cmd

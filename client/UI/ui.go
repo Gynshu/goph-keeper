@@ -40,12 +40,12 @@ func (u *ui) Pages() *tview.Pages {
 	return u.pages
 }
 
-func (u *ui) throwError(err error, fromPage string) {
+func (u *ui) throwModal(message error, redirect string) {
 	u.pages.AddAndSwitchToPage("error", tview.NewModal().
-		SetText(err.Error()).
+		SetText(message.Error()).
 		AddButtons([]string{"Ok"}).
 		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
-			u.pages.SwitchToPage(fromPage)
+			u.pages.SwitchToPage(redirect)
 		}), false)
 	return
 }
@@ -53,7 +53,7 @@ func (u *ui) throwError(err error, fromPage string) {
 func (u *ui) goToMenu() {
 	err := u.mediator.Sync(nil)
 	if err != nil {
-		u.throwError(err, "menu")
+		u.throwModal(err, "menu")
 		return
 	}
 	u.pages.RemovePage("menu")
@@ -71,23 +71,15 @@ func (u *ui) grid(header tview.Primitive, elem tview.Primitive) *tview.Grid {
 		header = newPrimitive("Header")
 	}
 	grid := tview.NewGrid().
-		SetRows(3, 0, 3).
-		SetColumns(30, 0, 30).
+		SetRows(3, 0, 1).
 		SetBorders(true).
-		AddItem(header, 0, 0, 1, 3, 0, 0, false).
+		AddItem(header, 0, 0, 1, 1, 0, 0, false).
 		AddItem(tview.NewButton("Quit").SetSelectedFunc(func() {
 			u.app.Stop()
-		}), 2, 0, 1, 3, 0, 0, false)
-
-	//grid.AddItem(main, 1, 3, 1, 3, 0, 0, false)
-	// Layout for screens narrower than 100 cells (menu and side bar are hidden).
-	grid.AddItem(newPrimitive("1"), 0, 0, 0, 0, 0, 0, false).
-		AddItem(elem, 1, 0, 1, 3, 0, 0, false).
-		AddItem(newPrimitive("1"), 0, 0, 0, 0, 0, 0, false)
+		}), 2, 0, 1, 1, 0, 0, false)
 
 	// Layout for screens wider than 100 cells.
-	grid.AddItem(newPrimitive("1"), 1, 0, 1, 1, 0, 100, false).
-		AddItem(elem, 1, 1, 1, 1, 0, 100, false).
-		AddItem(newPrimitive("1"), 1, 2, 1, 1, 0, 100, false)
+	grid.AddItem(elem, 1, 0, 1, 1, 0, 0, false)
+
 	return grid
 }

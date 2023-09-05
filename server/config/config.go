@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/rs/zerolog/log"
 	"os"
+	"path"
 	"sync"
 )
 
@@ -22,13 +23,21 @@ type config struct {
 func newConfig() error {
 	instance = &config{}
 
-	pwd, err := os.Getwd()
+	gp, err := os.Getwd()
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to get current working directory")
+		log.Fatal().Msg("GOPATH is not set")
+	}
+
+	// find "goph-keeper" directory
+	for path.Base(gp) != "goph-keeper" {
+		gp = path.Dir(gp)
+		if gp == "/" {
+			log.Fatal().Msg("Failed to find goph-keeper directory")
+		}
 	}
 
 	// open json file
-	file, err := os.Open(pwd + "/server/config.json")
+	file, err := os.Open(gp + "/server/config.json")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to open config file")
 	}
@@ -41,8 +50,8 @@ func newConfig() error {
 		log.Fatal().Err(err).Msg("Failed to decode config")
 	}
 
-	instance.CertFilePath = pwd + "/" + instance.CertFilePath
-	instance.KeyFilePath = pwd + "/" + instance.KeyFilePath
+	instance.CertFilePath = gp + "/" + instance.CertFilePath
+	instance.KeyFilePath = gp + "/" + instance.KeyFilePath
 	return nil
 }
 

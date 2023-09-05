@@ -4,12 +4,17 @@ import (
 	"errors"
 	"github.com/gynshu-one/goph-keeper/common/models"
 	"github.com/rivo/tview"
+	"sort"
+	"strings"
 )
 
 func (u *ui) itemsTable() (list *tview.List) {
 	items := u.storage.Get()
 	list = tview.NewList()
-
+	// sort items
+	sort.Slice(items, func(i, j int) bool {
+		return strings.ToLower(items[i].Name) < strings.ToLower(items[j].Name)
+	})
 	for _, item := range items {
 		decrypt, wrapper, err := u.storage.FindDecrypt(item.ID)
 		if err != nil {
@@ -17,7 +22,7 @@ func (u *ui) itemsTable() (list *tview.List) {
 				list.AddItem(item.Name, "----deleted----", 0, nil)
 				continue
 			}
-			u.throwError(err, "login")
+			u.throwModal(err, "login")
 			return
 		}
 

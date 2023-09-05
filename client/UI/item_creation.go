@@ -24,19 +24,19 @@ func (u *ui) text(data models.ArbitraryText, wrapper models.DataWrapper) *tview.
 		AddInputField("Text", data.Text, 50, nil, func(in string) {
 			data.Text = in
 		}).
-		AddButton("Submit", func() {
+		AddButton("Save", func() {
 			if wrapper.Name == "" {
-				u.throwError(fmt.Errorf("name is empty"), "text")
+				u.throwModal(fmt.Errorf("name is empty"), "text")
 				return
 			}
 			if data.Text == "" {
-				u.throwError(fmt.Errorf("text is empty"), "text")
+				u.throwModal(fmt.Errorf("text is empty"), "text")
 				return
 			}
 
 			err := u.storage.AddEncrypt(&data, wrapper)
 			if err != nil {
-				u.throwError(err, "text")
+				u.throwModal(err, "text")
 				return
 			}
 			u.goToMenu()
@@ -49,18 +49,21 @@ func (u *ui) text(data models.ArbitraryText, wrapper models.DataWrapper) *tview.
 		form.AddButton("Delete", func() {
 			err := u.storage.Delete(wrapper.ID)
 			if err != nil {
-				u.throwError(err, "login")
+				u.throwModal(err, "text")
 				return
 			}
 			err = u.mediator.Sync(nil)
 			if err != nil {
-				u.throwError(err, "login")
+				u.throwModal(err, "text")
 				return
 			}
-			u.goToMenu()
+			u.throwModal(fmt.Errorf("item will be deleted from server in 30 days"), "text")
 		})
+		form.SetTitle(" Edit text ")
+	} else {
+		form.SetTitle(" Add text ")
 	}
-	form.SetBorder(true).SetTitle("Add text").SetTitleAlign(tview.AlignCenter)
+	form.SetBorder(true).SetTitleAlign(tview.AlignCenter)
 	return form
 }
 
@@ -92,18 +95,18 @@ func (u *ui) bankCard(data models.BankCard, wrapper models.DataWrapper) *tview.F
 		AddInputField("CardExp", data.CardExp, 30, nil, func(in string) {
 			data.CardExp = in
 		}).
-		AddButton("Submit", func() {
+		AddButton("Save", func() {
 			if wrapper.Name == "" {
-				u.throwError(fmt.Errorf("name is empty"), "bank_card")
+				u.throwModal(fmt.Errorf("name is empty"), "bank_card")
 				return
 			}
 			if data.CardNum == "" {
-				u.throwError(fmt.Errorf("card number is empty"), "bank_card")
+				u.throwModal(fmt.Errorf("card number is empty"), "bank_card")
 				return
 			}
 			err := u.storage.AddEncrypt(&data, wrapper)
 			if err != nil {
-				u.throwError(err, "bank_card")
+				u.throwModal(err, "bank_card")
 				return
 			}
 			u.goToMenu()
@@ -116,18 +119,21 @@ func (u *ui) bankCard(data models.BankCard, wrapper models.DataWrapper) *tview.F
 		form.AddButton("Delete", func() {
 			err := u.storage.Delete(wrapper.ID)
 			if err != nil {
-				u.throwError(err, "login")
+				u.throwModal(err, "bank_card")
 				return
 			}
 			err = u.mediator.Sync(nil)
 			if err != nil {
-				u.throwError(err, "login")
+				u.throwModal(err, "bank_card")
 				return
 			}
-			u.goToMenu()
+			u.throwModal(fmt.Errorf("item will be deleted from server in 30 days"), "bank_card")
 		})
+		form.SetTitle(" Edit bank card ")
+	} else {
+		form.SetTitle(" Add bank card ")
 	}
-	form.SetBorder(true).SetTitle("Add bank card").SetTitleAlign(tview.AlignCenter)
+	form.SetBorder(true).SetTitleAlign(tview.AlignCenter)
 	return form
 }
 
@@ -151,37 +157,37 @@ func (u *ui) binary(data models.Binary, wrapper models.DataWrapper) *tview.Form 
 		AddInputField("Path", "", 30, nil, func(in string) {
 			path = in
 		}).
-		AddButton("Submit", func() {
+		AddButton("Save", func() {
 			file, err := os.Open(path)
 			if err != nil {
-				u.throwError(err, "binary")
+				u.throwModal(err, "binary")
 				return
 			}
 			defer func(file *os.File) {
 				err = file.Close()
 				if err != nil {
-					u.throwError(err, "binary")
+					u.throwModal(err, "binary")
 					return
 				}
 			}(file)
 			readAll, err := io.ReadAll(file)
 			if err != nil {
-				u.throwError(err, "binary")
+				u.throwModal(err, "binary")
 				return
 			}
 			data.Binary = readAll
 			if len(data.Binary) == 0 {
-				u.throwError(fmt.Errorf("binary is empty"), "binary")
+				u.throwModal(fmt.Errorf("binary is empty"), "binary")
 				return
 			}
 			if wrapper.Name == "" {
-				u.throwError(fmt.Errorf("name is empty"), "binary")
+				u.throwModal(fmt.Errorf("name is empty"), "binary")
 				return
 			}
 
 			err = u.storage.AddEncrypt(&data, wrapper)
 			if err != nil {
-				u.throwError(err, "binary")
+				u.throwModal(err, "binary")
 				return
 			}
 			u.goToMenu()
@@ -194,18 +200,21 @@ func (u *ui) binary(data models.Binary, wrapper models.DataWrapper) *tview.Form 
 		form.AddButton("Delete", func() {
 			err := u.storage.Delete(wrapper.ID)
 			if err != nil {
-				u.throwError(err, "login")
+				u.throwModal(err, "binary")
 				return
 			}
 			err = u.mediator.Sync(nil)
 			if err != nil {
-				u.throwError(err, "login")
+				u.throwModal(err, "binary")
 				return
 			}
-			u.goToMenu()
+			u.throwModal(fmt.Errorf("item will be deleted from server in 30 days"), "binary")
 		})
+		form.SetTitle(" Edit binary ")
+	} else {
+		form.SetTitle(" Add binary ")
 	}
-	form.SetBorder(true).SetTitle("Add binary").SetTitleAlign(tview.AlignCenter)
+	form.SetBorder(true).SetTitleAlign(tview.AlignCenter)
 	return form
 }
 
@@ -237,22 +246,22 @@ func (u *ui) login(data models.Login, wrapper models.DataWrapper) *tview.Form {
 		AddInputField("RecoveryCodes", data.RecoveryCodes, 30, nil, func(in string) {
 			data.RecoveryCodes = in
 		}).
-		AddButton("Submit", func() {
+		AddButton("Save", func() {
 			if wrapper.Name == "" {
-				u.throwError(fmt.Errorf("name is empty"), "login")
+				u.throwModal(fmt.Errorf("name is empty"), "login")
 				return
 			}
 			if data.Username == "" {
-				u.throwError(fmt.Errorf("username is empty"), "login")
+				u.throwModal(fmt.Errorf("username is empty"), "login")
 				return
 			}
 			if data.Password == "" {
-				u.throwError(fmt.Errorf("password is empty"), "login")
+				u.throwModal(fmt.Errorf("password is empty"), "login")
 				return
 			}
 			err := u.storage.AddEncrypt(&data, wrapper)
 			if err != nil {
-				u.throwError(err, "login")
+				u.throwModal(err, "login")
 				return
 			}
 			u.goToMenu()
@@ -266,18 +275,37 @@ func (u *ui) login(data models.Login, wrapper models.DataWrapper) *tview.Form {
 		form.AddButton("Delete", func() {
 			err := u.storage.Delete(wrapper.ID)
 			if err != nil {
-				u.throwError(err, "login")
+				u.throwModal(err, "login")
 				return
 			}
 			err = u.mediator.Sync(nil)
 			if err != nil {
-				u.throwError(err, "login")
+				u.throwModal(err, "login")
 				return
 			}
-			u.goToMenu()
+			u.throwModal(fmt.Errorf("item will be deleted from server in 30 days"), "login")
 		})
 	}
-	form.SetBorder(true).SetTitle("Add login").SetTitleAlign(tview.AlignCenter)
+	if data.OneTimeOrigin != "" {
+		form.AddButton("Get One Time Password", func() {
+			oneTime, _, err := data.GenerateOneTimePassword()
+			if err != nil {
+				u.throwModal(err, "login")
+				return
+			}
+			u.pages.AddAndSwitchToPage("one_time", tview.NewModal().
+				SetText(oneTime).
+				AddButtons([]string{"Ok"}).
+				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+					u.goToMenu()
+				}), false)
+			return
+		})
+		form.SetTitle(" Edit login ")
+	} else {
+		form.SetTitle(" Add login ")
+	}
+	form.SetBorder(true).SetTitleAlign(tview.AlignCenter)
 	return form
 }
 

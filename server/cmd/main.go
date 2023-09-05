@@ -18,7 +18,7 @@ func main() {
 	db := config.NewDb()
 
 	// init storage
-	newStorage := storage.NewStorage(db.Collection("user-data"))
+	newStorage := storage.NewStorage(db.Collection("user-data"), db.Collection("users"))
 
 	// init handlers
 	handlers := server.NewHandlers(newStorage)

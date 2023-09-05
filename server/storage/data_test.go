@@ -12,7 +12,7 @@ func TestSetData(t *testing.T) {
 	ctx := context.Background()
 	// I don't have time to create mocks for mongoDB client and responses
 	db := config.NewDb()
-	s := NewStorage(db.Collection("user-data"))
+	s := NewStorage(db.Collection("user-data"), db.Collection("users"))
 	data := models.DataWrapper{
 		ID:        "123456",
 		OwnerID:   "user1",
@@ -31,7 +31,7 @@ func TestGetData(t *testing.T) {
 	ctx := context.Background()
 	// I don't have time to create mocks for mongoDB client and responses
 	db := config.NewDb()
-	s := NewStorage(db.Collection("user-data"))
+	s := NewStorage(db.Collection("user-data"), db.Collection("users"))
 	data := models.DataWrapper{
 		ID:        "123456",
 		OwnerID:   "user1",

@@ -94,17 +94,12 @@ func TestSignIn(t *testing.T) {
 	defer server.Close()
 	// Create a temporary directory for session files (change as needed)
 	tempDir := "/tmp"
-	err := os.Mkdir(tempDir, 0700)
-	if err != nil {
-		t.Errorf("Failed to create temporary directory: %v", err)
-		return
-	}
 
 	// Create a mediator with the mock server
 	newMediator := NewMediator(storage.NewStorage())
 
 	// Test the SignIn function
-	err = newMediator.SignIn(context.Background(), "testuser", "password")
+	err := newMediator.SignIn(context.Background(), "testuser", "password")
 	if err != nil {
 		t.Errorf("SignIn failed with error: %v", err)
 	}
@@ -120,7 +115,6 @@ func TestSignIn(t *testing.T) {
 	_ = os.Remove(sessionFilePath)
 }
 func TestSync(t *testing.T) {
-	tempDir := "/tmp"
 	server := MockChiHTTPServer()
 	defer server.Close()
 
@@ -133,13 +127,6 @@ func TestSync(t *testing.T) {
 		t.Errorf("Sync failed with error: %v", err)
 	}
 
-	// Clean up: Remove the session file
-	sessionFilePath := tempDir + "/" + config.SessionFile
-	err = os.Remove(sessionFilePath)
-	if err != nil {
-		t.Errorf("Failed to remove session file: %v", err)
-		return
-	}
 }
 
 func TestCreateUserSessionFiles(t *testing.T) {

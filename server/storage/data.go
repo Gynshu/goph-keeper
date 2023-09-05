@@ -22,9 +22,10 @@ type Storage interface {
 }
 
 // NewStorage returns a new Storage.
-func NewStorage(collection *mongo.Collection) *storage {
+func NewStorage(dataCollection, userCollection *mongo.Collection) *storage {
 	return &storage{
-		dataCollection: collection,
+		dataCollection: dataCollection,
+		userCollection: userCollection,
 	}
 }
 

@@ -30,14 +30,14 @@ func (u *ui) register() *tview.Form {
 	}).
 		AddButton("SignUp", func() {
 			if secret == "" || pass == "" || config.CurrentUser.Username == "" {
-				u.throwError(fmt.Errorf("please fill all data"), "register")
+				u.throwModal(fmt.Errorf("please fill all data"), "register")
 				return
 			}
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 			err = u.mediator.SignUp(ctx, config.CurrentUser.Username, pass)
 			if err != nil {
-				u.throwError(err, "register")
+				u.throwModal(err, "register")
 				return
 			}
 			auth.SetSecret(secret)
@@ -46,14 +46,14 @@ func (u *ui) register() *tview.Form {
 			return
 		}).AddButton("SignIn", func() {
 		if secret == "" || pass == "" || config.CurrentUser.Username == "" {
-			u.throwError(fmt.Errorf("please fill all data"), "register")
+			u.throwModal(fmt.Errorf("please fill all data"), "register")
 			return
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		err = u.mediator.SignIn(ctx, config.CurrentUser.Username, pass)
 		if err != nil {
-			u.throwError(err, "register")
+			u.throwModal(err, "register")
 			return
 		}
 		auth.SetSecret(secret)
@@ -63,6 +63,6 @@ func (u *ui) register() *tview.Form {
 	}).AddButton("Quit", func() {
 		u.app.Stop()
 	})
-	form.SetBorder(true).SetTitle("SignUp or login").SetTitleAlign(tview.AlignLeft)
+	form.SetBorder(true).SetTitle(" SignUp or login (for simplicity your login info will be saved in OS keychain)").SetTitleAlign(tview.AlignLeft)
 	return form
 }

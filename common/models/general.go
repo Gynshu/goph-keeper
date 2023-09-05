@@ -21,7 +21,9 @@ type DataWrapper struct {
 	UpdatedAt int64  `json:"updated_at" bson:"updated_at"`
 	CreatedAt int64  `json:"created_at" bson:"created_at"`
 	DeletedAt int64  `json:"deleted_at" bson:"deleted_at"`
-	Data      []byte `json:"data" bson:"data"`
+	// This is the actual data that is stored in the database
+	// Encrypted with user's secret
+	Data []byte `json:"data" bson:"data"`
 }
 
 const (

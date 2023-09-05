@@ -65,10 +65,7 @@ After logging in to a server with only password (Not secret) you will receive se
 The client will read the config.json file from its working directory.
 ```json
 {
-  "SERVER_IP": "localhost:8080",
-  "POLL_TIMER": 5,
-  "DUMP_TIMER": 10,
-  "CACHE_FOLDER": "/data-keeper"
+  "SERVER_IP": "localhost:8080"
 }
 ```
 
@@ -162,5 +159,9 @@ Data      []byte `json:"data" bson:"data"`
 
 struct in [general.go](https://github.com/gynshu-one/goph-keeper/common/models/general.go)
 
-Every time user creates something new item or signs in it sends all data to server and server updates it in database if needed (checking UpdatedAt  time).
+`Sync` happens imminently after logging in and every item creation, deletion or update.
+
+`Client` does not have cache of the data, it only stores session cookie and username in /temp/session_id file.
+
+
 Deleted items would force server to remove `DataWrapper`'s Data field and set `DeletedAt` field.

@@ -1,47 +1,67 @@
 # Goph-Keeper
 This is a password manager written in Go.
 Graduation project of Advanced golang course at Yandex.Praktikum
-
+##  Tech stack
+- [Go](https://golang.org/)
+- [MongoDB](https://www.mongodb.com/)
+- [Docker-compose](https://docs.docker.com/compose/)
+- [TOTP](https://en.wikipedia.org/wiki/Time-based_One-time_Password_algorithm)
+- [AES](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard)
+- [Chi router](https://github.com/go-chi/chi/v5)
+- [Resty](https://github.com/go-resty/resty/v2)
+- [Zero log](https://github.com/rs/zerolog/log)
 ## Installation
 
-inside the project directory run:
+```bash
+git clone https://github.com/gynshu-one/goph-keeper
+cd goph-keeper
+```
+### Server part
+Inside the project directory, to build and run server:
 ```bash
 make serve
 ```
-under the hood is this:
+Under the hood is this:
 ```bash
 @echo "Starting server..."
-sudo chmod +x common/cert/gen_keys.sh
-cd common/cert && ./gen_keys.sh
+sudo chmod +x server/cert/gen_keys.sh
+cd server/cert && ./gen_keys.sh
+# runs mongodb
 docker-compose up --build -d
+# builds the server
+go build -o ./server_cmd ./server/cmd/main.go
+# runs the server
+./server_cmd -c ./server/config.json
 ```
-see [Makefile](https://github.com/gynshu-one/goph-keeper/Makefile)
-This will generate TSL certs build docker image and run it on port 8080 as well as mongodb on port 27017
 
-## Getting started with
-
-You'll need to have Go installed on your machine. You can download it [here](https://golang.org/dl/).
-To run client
-
+### Client part
+Inside the project directory, to build and run client:
 ```bash
 make ui
 ```
-under the hood is this:
+
+Under the hood is this:
 ```bash
 @echo "Building client..."
-go build -o ./client_cmd ./client/cmd/main.go
-./client_cmd
+	go build -o ./client_cmd ./client/cmd/main.go
+	./client_cmd -c "./client/config.json"
 ```
+
+
+see [Makefile](https://github.com/gynshu-one/goph-keeper/Makefile)
+This will generate TSL certs build docker image and run it on port 8080 as well as mongodb on port 27017
+
+
 ## Signing up and logging in
 <img style="max-width:400px" src="https://imgur.com/DDsrsM6">
-For simplicity, the password is and secret is store in OS keychain
+For simplicity, the password and secret are stored in the OS keychain.
 Every other log in would grab username from  /temp/session_id file and check OS keychain for password and secret
 
 After logging in to a server with only password (Not secret) you will receive session cookie for 24 hours.
 
 ## Configuring
 
-Client will read config.json file from its base dir which looks like this
+The client will read the config.json file from its working directory.
 ```json
 {
   "SERVER_IP": "localhost:8080",
@@ -51,12 +71,22 @@ Client will read config.json file from its base dir which looks like this
 }
 ```
 
+The Server will config.json from its working dir 
+```json
+{
+  "MONGO_URI": "mongodb://admin:password@mongo_db:27017",
+  "HTTP_SERVER_PORT": "8080",
+  "CERT_FILE_PATH": "common/cert/cert.pem",
+  "KEY_FILE_PATH": "common/cert/key.pem"
+}
+```
+
 ### Basic ui
 
 Main page
 <img style="max-width:400px" src="https://imgur.com/EswW6Xo">
 
-Adding new bank card
+Adding a new bank card
 <img style="max-width:400px" src="https://imgur.com/hXx4UzS">
 
 Editing it
@@ -79,13 +109,13 @@ Which are defined in [router.go](https://github.com/gynshu-one/goph-keeper/serve
 ### /user/create
 Creates new user with username and password with url params
 ```
-https://localhost:8080/user/create?username=your_username&password=your_password
+https://localhost:8080/user/create?email=your_username&password=your_password
 ```
 ### /user/login
 Logs in user
 creates session cookie for 24 hours
 ```
-https://localhost:8080/user/login?username=your_username&password=your_password
+https://localhost:8080/user/login?email=your_username&password=your_password
 ```
 ### /user/logout
 Logs out user and deletes session cookie
@@ -99,7 +129,7 @@ which uses [session.go](https://github.com/gynshu-one/goph-keeper/server/api/ses
 ```
 https://localhost:8080/user/sync
 ```
-with post data list defined in `DataWrapper`
+`POST` data slice of `DataWrapper` structs
 ```go
 // DataWrapper is a struct that wraps BasicData and provides additional information about the data
 // such as owner id, type, name, updated_at, created_at, deleted_at
@@ -123,5 +153,5 @@ type DataWrapper struct {
 
 struct in [general.go](https://github.com/gynshu-one/goph-keeper/common/models/general.go)
 
-Every time user creates something new or signs in it sends all data to server and server updates it in database if needed.
+Every time user creates something new item or signs in it sends all data to server and server updates it in database if needed (checking UpdatedAt  time).
 Deleted items would force server to remove `DataWrapper`'s Data field and set `DeletedAt` field.

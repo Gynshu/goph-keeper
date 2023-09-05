@@ -14,10 +14,17 @@ type storage struct {
 	userCollection *mongo.Collection
 }
 
+// Storage is an interface for all storage types.
+// It provides methods to get and set data.
+// Users are stored in a separate collection.
 type Storage interface {
+	// GetData returns the all data from database associated with the given user id.
 	GetData(ctx context.Context, userID string) ([]models.DataWrapper, error)
+	// SetData sets the model with the given id
 	SetData(ctx context.Context, data models.DataWrapper) error
+	// CreateUser creates a new user in the database
 	CreateUser(ctx context.Context, user models.User) error
+	// GetUser returns the user with the given email
 	GetUser(ctx context.Context, email string) (models.User, error)
 }
 
@@ -30,7 +37,7 @@ func NewStorage(dataCollection, userCollection *mongo.Collection) *storage {
 }
 
 // SetData sets the model with the given id
-// if it exists it will be updated, otherwise it will be created.
+// if {it exists and update date of new data is newer it will be updated}, {otherwise it will be created.}
 func (s *storage) SetData(ctx context.Context, data models.DataWrapper) error {
 	// create a new document in mongo
 	_, err := s.dataCollection.InsertOne(ctx, data)

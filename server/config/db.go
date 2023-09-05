@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+// NewDb creates a new connection to MongoDB and returns a database object
 func NewDb() *mongo.Database {
 	connOpts := options.Client().ApplyURI(GetConfig().MongoURI)
 

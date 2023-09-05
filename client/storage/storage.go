@@ -1,3 +1,6 @@
+// Package storage
+// is a simple storage for data with mutex and map
+// it decrypts data on get and encrypts on set
 package storage
 
 import (
@@ -15,10 +18,23 @@ import (
 type Storage interface {
 	// AddEncrypt adds a new model to the storage.
 	// Use only For NEW Data
+	// it encrypts data and saves it to the storage
+	// by creating models.DataWrapper struct and adding it to the storage
+	// Wrapper should be passed with Name and Type fields
 	AddEncrypt(data models.BasicData, wrapper models.DataWrapper) error
+	// Swap replaces all data in the storage with new data
+	// this is server client exchange method
 	Swap(data []models.DataWrapper) error
+	// FindDecrypt finds a model in the storage by id and decrypts it
+	// returns decrypted data and wrapper
+	// if wrapper content (data) is deleted returns error and wrapper
+	// for ui
 	FindDecrypt(id string) (data any, wrapper models.DataWrapper, err error)
+	// Delete sets deleted time and clears data field of
 	Delete(id string) error
+
+	// Get returns all data from storage
+	// for server
 	Get() (data []models.DataWrapper)
 }
 
@@ -114,6 +130,8 @@ func (s *storage) FindDecrypt(id string) (data any, wrapper models.DataWrapper, 
 
 	return nil, wrapper, models.UnknownType
 }
+
+// Delete sets deleted time and clears data field of
 func (s *storage) Delete(id string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -127,6 +145,9 @@ func (s *storage) Delete(id string) error {
 	s.repo[id] = item
 	return nil
 }
+
+// Swap replaces all data in the storage with new data
+// this is server client exchange method
 func (s *storage) Swap(data []models.DataWrapper) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -135,16 +156,17 @@ func (s *storage) Swap(data []models.DataWrapper) error {
 	}
 	// full clear
 	s.repo = make(map[string]models.DataWrapper)
-	for i, _ := range data {
+	for i := range data {
 		s.repo[data[i].ID] = data[i]
 	}
 	return nil
 }
 
+// Get returns all data from storage
 func (s *storage) Get() (data []models.DataWrapper) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	for v, _ := range s.repo {
+	for v := range s.repo {
 		data = append(data, s.repo[v])
 	}
 	return

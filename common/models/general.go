@@ -3,7 +3,11 @@ package models
 // BasicData is an interface for all data types
 // It provides methods to encrypt and decrypt data
 type BasicData interface {
+	// EncryptAll encrypts the data with the given passphrase
+	// used to store in DataWrapper Data field
 	EncryptAll(passphrase string) (encryptedData []byte, err error)
+	// DecryptAll decrypts the data with the given passphrase
+	// used to get the data from DataWrapper Data field
 	DecryptAll(passphrase string, encrypteData []byte) error
 }
 

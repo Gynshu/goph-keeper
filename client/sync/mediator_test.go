@@ -56,10 +56,7 @@ func MockChiHTTPServer() *httptest.Server {
 	return server
 }
 func init() {
-	pwd, _ := os.Getwd()
-	// strip last path
-	pwd = pwd[:len(pwd)-len("/sync")]
-	err := config.NewConfig(pwd + "/config.json")
+	err := config.NewConfig()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to read config file please check if it exists and is valid" +
 			"Config should be in json format and contain SERVER_IP, POLL_TIMER, DUMP_TIMER")

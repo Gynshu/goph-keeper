@@ -9,13 +9,3 @@ services:
       - MONGO_INITDB_ROOT_PASSWORD=password
     ports:
       - "27017:27017"
-  goph-keeper:
-    build:
-        context: .
-        dockerfile: ./server/Dockerfile
-    container_name: goph-keeper
-    ports:
-      - "8080:8080"
-    depends_on:
-      - mongo_db
-    command: ["/goph-keeper/main"]

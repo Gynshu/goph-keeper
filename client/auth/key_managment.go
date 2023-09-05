@@ -1,3 +1,4 @@
+// Package auth Is about storing and retrieving passwords and secrets from OS keyring and caching session tokens
 package auth
 
 import (
@@ -10,7 +11,7 @@ import (
 func SetPass(pass string) {
 	err := keyring.Set(config.ServiceName, config.CurrentUser.Username, pass)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to set pass")
+		log.Debug().Err(err).Msg("Failed to set pass")
 	}
 }
 
@@ -18,7 +19,7 @@ func SetPass(pass string) {
 func SetSecret(secret string) {
 	err := keyring.Set(config.ServiceName, config.CurrentUser.Username+"s", secret)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to set secret")
+		log.Debug().Err(err).Msg("Failed to set secret")
 	}
 }
 
@@ -26,7 +27,7 @@ func SetSecret(secret string) {
 func GetPass() string {
 	pass, err := keyring.Get(config.ServiceName, config.CurrentUser.Username)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get pass")
+		log.Debug().Err(err).Msg("Failed to get pass")
 		return ""
 	}
 	return pass
@@ -36,7 +37,7 @@ func GetPass() string {
 func GetSecret() string {
 	secret, err := keyring.Get(config.ServiceName, config.CurrentUser.Username+"s")
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get secret")
+		log.Debug().Err(err).Msg("Failed to get secret")
 		return ""
 	}
 	return secret

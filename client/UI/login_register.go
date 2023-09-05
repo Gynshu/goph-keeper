@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gynshu-one/goph-keeper/client/auth"
 	"github.com/gynshu-one/goph-keeper/client/config"
+	"github.com/gynshu-one/goph-keeper/common/utils"
 	"github.com/rivo/tview"
 	"time"
 )
@@ -33,6 +34,11 @@ func (u *ui) register() *tview.Form {
 				u.throwModal(fmt.Errorf("please fill all data"), "register")
 				return
 			}
+			// validate email
+			if !utils.ValidateEmail(config.CurrentUser.Username) {
+				u.throwModal(fmt.Errorf("please enter valid email"), "register")
+				return
+			}
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 			err = u.mediator.SignUp(ctx, config.CurrentUser.Username, pass)
@@ -49,6 +55,10 @@ func (u *ui) register() *tview.Form {
 			u.throwModal(fmt.Errorf("please fill all data"), "register")
 			return
 		}
+		if !utils.ValidateEmail(config.CurrentUser.Username) {
+			u.throwModal(fmt.Errorf("please enter valid email"), "register")
+			return
+		}
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		err = u.mediator.SignIn(ctx, config.CurrentUser.Username, pass)
@@ -60,8 +70,6 @@ func (u *ui) register() *tview.Form {
 		auth.SetPass(pass)
 		u.goToMenu()
 		return
-	}).AddButton("Quit", func() {
-		u.app.Stop()
 	})
 	form.SetBorder(true).SetTitle(" SignUp or login (for simplicity your login info will be saved in OS keychain)").SetTitleAlign(tview.AlignLeft)
 	return form

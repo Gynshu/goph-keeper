@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	auth "github.com/gynshu-one/goph-keeper/server/api/auth"
 	server "github.com/gynshu-one/goph-keeper/server/api/handlers"
 	"github.com/gynshu-one/goph-keeper/server/api/router"
@@ -14,7 +15,20 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+var (
+	buildVersion string
+	buildDate    string
+)
+
 func main() {
+	if buildVersion == "" {
+		buildVersion = "1.0.0"
+	}
+	if buildDate == "" {
+		buildDate = "09.05.2023"
+	}
+	fmt.Printf("Build version: %s\n", buildVersion)
+	fmt.Printf("Build date: %s\n", buildDate)
 	db := config.NewDb()
 
 	// init storage

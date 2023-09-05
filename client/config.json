@@ -1,6 +1,5 @@
 {
   "SERVER_IP": "localhost:8080",
-    "POLL_TIMER": 5,
-    "DUMP_TIMER": 10,
-    "CACHE_FOLDER": "/data-keeper"
+  "POLL_TIMER": 5,
+  "DUMP_TIMER": 10
 }

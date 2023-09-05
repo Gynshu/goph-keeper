@@ -21,6 +21,10 @@ const (
 	Endpoint         = "/user/sync"
 )
 
+// Mediator is a mediator between client and server
+// It is responsible for sending data to server and receiving data from server
+// as well as signing up and signing in
+// uses resty as http client
 type Mediator interface {
 	Sync(ctx context.Context) error
 	SignUp(ctx context.Context, username, password string) error
@@ -42,6 +46,11 @@ func NewMediator(storage storage.Storage) *mediator {
 	}
 	return md
 }
+
+// SignUp sends request to server to create new user
+// if request is successful, it will create session_id file
+// and store session_id and username in it
+// if request is not successful, it will return error
 func (m *mediator) SignUp(ctx context.Context, username, password string) error {
 	if username == "" || password == "" {
 		return fmt.Errorf("username or password is empty")
@@ -77,6 +86,9 @@ func (m *mediator) SignUp(ctx context.Context, username, password string) error 
 	return fmt.Errorf("failed to get cookie")
 }
 
+// SignIn sends request to server to login user
+// if request is successful, it will create session_id file
+// and store session_id and username in it
 func (m *mediator) SignIn(ctx context.Context, username, password string) error {
 	if username == "" || password == "" {
 		return fmt.Errorf("username or password is empty")
@@ -109,6 +121,7 @@ func (m *mediator) SignIn(ctx context.Context, username, password string) error 
 	return nil
 }
 
+// Sync sends request to server to get data then swap it with local data
 func (m *mediator) Sync(ctx context.Context) error {
 	response, err := m.client.NewRequest().SetContext(ctx).
 		SetBody(m.storage.Get()).SetCookie(&http.Cookie{

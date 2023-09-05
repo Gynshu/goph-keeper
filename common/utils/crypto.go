@@ -70,6 +70,7 @@ func DecryptData(ciphertext []byte, key string) ([]byte, error) {
 	return plaintext, nil
 }
 
+// deriveAESKey derives a 256-bit AES key from a user's master key
 func deriveAESKey(userKey string) (string, error) {
 	// Hash the user-provided key using SHA-256 to generate a 256-bit key
 	hasher := sha256.New()

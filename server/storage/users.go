@@ -7,6 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+// CreateUser creates a new user in the database
 func (s *storage) CreateUser(ctx context.Context, user models.User) error {
 	// Try to create a new user
 	_, err := s.userCollection.InsertOne(ctx, user)
@@ -19,6 +20,7 @@ func (s *storage) CreateUser(ctx context.Context, user models.User) error {
 	return nil
 }
 
+// GetUser  returns the user with the given email
 func (s *storage) GetUser(ctx context.Context, email string) (models.User, error) {
 	var user models.User
 	filter := bson.D{{"_id", email}}

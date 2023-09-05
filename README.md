@@ -53,7 +53,8 @@ This will generate TSL certs build docker image and run it on port 8080 as well 
 
 
 ## Signing up and logging in
-<img style="max-width:400px" src="https://imgur.com/DDsrsM6">
+<img style="max-width:600px" src="https://i.imgur.com/DDsrsM6.png">
+
 For simplicity, the password and secret are stored in the OS keychain.
 Every other log in would grab username from  /temp/session_id file and check OS keychain for password and secret
 
@@ -71,7 +72,7 @@ The client will read the config.json file from its working directory.
 }
 ```
 
-The Server will config.json from its working dir 
+The Server will config.json from its working dir
 ```json
 {
   "MONGO_URI": "mongodb://admin:password@mongo_db:27017",
@@ -83,24 +84,32 @@ The Server will config.json from its working dir
 
 ### Basic ui
 
-Main page
-<img style="max-width:400px" src="https://imgur.com/EswW6Xo">
+#### Main page
+
+<img style="max-width:600px" src="https://i.imgur.com/EswW6Xo.png">
 
 Adding a new bank card
-<img style="max-width:400px" src="https://imgur.com/hXx4UzS">
 
-Editing it
-<img style="max-width:400px" src="https://imgur.com/AqI3rRM">
+<img style="max-width:600px" src="https://i.imgur.com/hXx4UzS.png">
 
-New login
-<img style="max-width:400px" src="https://imgur.com/LdGKuON">
+#### Editing it
 
-Deletion
-<img style="max-width:400px" src="https://imgur.com/6OIPMR7">
+<img style="max-width:600px" src="https://i.imgur.com/AqI3rRM.png">
 
-Generating One time
-<img style="max-width:400px" src="https://imgur.com/UC2Fi5W">
-<img style="max-width:400px" src="https://imgur.com/bMAYiCI">
+#### New login
+
+<img style="max-width:600px" src="https://i.imgur.com/LdGKuON.png">
+
+#### Deletion
+
+<img style="max-width:600px" src="https://i.imgur.com/6OIPMR7.png">
+
+#### Generating One time
+
+<img style="max-width:600px" src="https://i.imgur.com/UC2Fi5W.png">
+
+
+<img style="max-width:600px" src="https://i.imgur.com/bMAYiCI.png">
 
 ## API
 
@@ -135,19 +144,19 @@ https://localhost:8080/user/sync
 // such as owner id, type, name, updated_at, created_at, deleted_at
 // it makes easier to store data in the database that shouldn't know anything about the data
 type DataWrapper struct {
-	// ID is the unique identifier of the data
-	ID string `json:"id" bson:"_id"`
-	// OwnerID is the user who owns this data
-	OwnerID string `json:"owner_id" bson:"owner_id"`
-	// Type is the type of the data such as ArbitraryTextType, BankCardType, BinaryType, LoginType
-	Type      string `json:"type" bson:"type"`
-	Name      string `json:"name" bson:"name"`
-	UpdatedAt int64  `json:"updated_at" bson:"updated_at"`
-	CreatedAt int64  `json:"created_at" bson:"created_at"`
-	DeletedAt int64  `json:"deleted_at" bson:"deleted_at"`
-	// This is the actual data that is stored in the database
-	// Encrypted with user's secret
-	Data      []byte `json:"data" bson:"data"`
+// ID is the unique identifier of the data
+ID string `json:"id" bson:"_id"`
+// OwnerID is the user who owns this data
+OwnerID string `json:"owner_id" bson:"owner_id"`
+// Type is the type of the data such as ArbitraryTextType, BankCardType, BinaryType, LoginType
+Type      string `json:"type" bson:"type"`
+Name      string `json:"name" bson:"name"`
+UpdatedAt int64  `json:"updated_at" bson:"updated_at"`
+CreatedAt int64  `json:"created_at" bson:"created_at"`
+DeletedAt int64  `json:"deleted_at" bson:"deleted_at"`
+// This is the actual data that is stored in the database
+// Encrypted with user's secret
+Data      []byte `json:"data" bson:"data"`
 }
 ```
 

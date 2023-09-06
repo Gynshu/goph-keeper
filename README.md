@@ -10,6 +10,7 @@ Graduation project of Advanced golang course at Yandex.Praktikum
 - [Chi router](https://github.com/go-chi/chi/v5)
 - [Resty](https://github.com/go-resty/resty/v2)
 - [Zero log](https://github.com/rs/zerolog/log)
+- [UI with Tveiw](https://github.com/rivo/tview)
 ## Installation
 
 ```bash

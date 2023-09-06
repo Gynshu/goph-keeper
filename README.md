@@ -85,6 +85,11 @@ The Server will read config.json from its working dir
 ### Basic ui
 
 #### Main page
+This page is basically a list of items, each item takes two rows first is a name of an item second is a type of it.
+
+If item was deleted recently client would see name and "deleted" message. 
+
+Header part contains item creation buttons
 
 <img style="max-width:600px" src="https://i.imgur.com/EswW6Xo.png">
 
@@ -92,6 +97,7 @@ Adding a new bank card
 
 <img style="max-width:600px" src="https://i.imgur.com/hXx4UzS.png">
 
+If you click on item name you will be switched to item edition page, it looks just like creation page, except additional buttons "delete" or item's `type` specific "generate one time" for `login` type
 #### Editing it
 
 <img style="max-width:600px" src="https://i.imgur.com/AqI3rRM.png">

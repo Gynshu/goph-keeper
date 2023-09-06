@@ -49,7 +49,7 @@ Under the hood is this:
 ```
 
 
-see [Makefile](https://github.com/gynshu-one/goph-keeper/Makefile)
+see [Makefile](https://github.com/gynshu-one/goph-keeper/blob/main/Makefile)
 
 
 ## Signing up and logging in
@@ -120,9 +120,9 @@ If you click on item name you will be switched to item edition page, it looks ju
 ## API
 
 Server has 4 endpoints
-Which are defined in [router.go](https://github.com/gynshu-one/goph-keeper/server/api/router/router.go)
+Which are defined in [router.go](https://github.com/gynshu-one/goph-keeper/blob/main/server/api/router/router.go)
 ### /user/create
-Creates new user with username and password with url params
+Creates new user with username and password from url params
 ```
 https://localhost:8080/user/create?email=your_username&password=your_password
 ```
@@ -138,17 +138,14 @@ Logs out user and deletes session cookie
 https://localhost:8080/user/logout
 ```
 ### /user/sync
-Synchronizes user data with server. Server check if user has session cookie via
-[middleware.go](https://github.com/gynshu-one/goph-keeper/server/api/middlewares/middleware.go)
-which uses [session.go](https://github.com/gynshu-one/goph-keeper/server/api/session/session.go)
+Synchronizes user data with server. Server checks if user has session cookie via
+[middleware.go](https://github.com/gynshu-one/goph-keeper/blob/main/server/api/middlewares/middleware.go)
+which uses [session.go](https://github.com/gynshu-one/goph-keeper/blob/main/server/api/auth/session.go)
 ```
 https://localhost:8080/user/sync
 ```
 endpoint expects `POST` request with slice of `DataWrapper` structs in json body 
 ```go
-// DataWrapper is a struct that wraps BasicData and provides additional information about the data
-// such as owner id, type, name, updated_at, created_at, deleted_at
-// it makes easier to store data in the database that shouldn't know anything about the data
 type DataWrapper struct {
 // ID is the unique identifier of the data
 ID string `json:"id" bson:"_id"`
@@ -166,7 +163,7 @@ Data      []byte `json:"data" bson:"data"`
 }
 ```
 
-struct in [general.go](https://github.com/gynshu-one/goph-keeper/common/models/general.go)
+struct in [general.go](https://github.com/gynshu-one/goph-keeper/blob/main/common/models/general.go)
 
 `Sync` happens imminently after logging in and every item creation, deletion or update.
 

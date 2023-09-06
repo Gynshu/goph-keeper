@@ -144,7 +144,7 @@ which uses [session.go](https://github.com/gynshu-one/goph-keeper/server/api/ses
 ```
 https://localhost:8080/user/sync
 ```
-`POST` data slice of `DataWrapper` structs
+endpoint expects `POST` request with slice of `DataWrapper` structs in json body 
 ```go
 // DataWrapper is a struct that wraps BasicData and provides additional information about the data
 // such as owner id, type, name, updated_at, created_at, deleted_at
@@ -170,7 +170,11 @@ struct in [general.go](https://github.com/gynshu-one/goph-keeper/common/models/g
 
 `Sync` happens imminently after logging in and every item creation, deletion or update.
 
-`Client` does not have cache of the data, it only stores session cookie and username in /temp/session_id file.
+Server compares received items to users previous 
+items if presented, and updates according to `updated_at` Unix time field. If client sends empty body - response would be all stored user items on server side.
+
+
+`Client` does not have cache of the data, it only stores session cookie and username in /temp/session_id file. 
 
 
 Deleted items would force server to remove `DataWrapper`'s Data field and set `DeletedAt` field.

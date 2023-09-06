@@ -91,14 +91,14 @@ If item was deleted recently client would see name and "deleted" message.
 
 Header part contains item creation buttons
 
+If you click on item name you will be switched to item edition page, it looks just like creation page, except additional buttons "delete" or item's `type` specific "generate one time" for `login` type
 <img style="max-width:600px" src="https://i.imgur.com/EswW6Xo.png">
 
-Adding a new bank card
+### Example of new item creation page
 
 <img style="max-width:600px" src="https://i.imgur.com/hXx4UzS.png">
 
-If you click on item name you will be switched to item edition page, it looks just like creation page, except additional buttons "delete" or item's `type` specific "generate one time" for `login` type
-#### Editing it
+#### Edit page
 
 <img style="max-width:600px" src="https://i.imgur.com/AqI3rRM.png">
 

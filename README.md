@@ -33,6 +33,7 @@ go build -o ./server_cmd ./server/cmd/main.go
 # runs the server
 ./server_cmd -c ./server/config.json
 ```
+This will generate TSL certs build docker image and run it on port 8080 as well as mongodb on port 27017
 
 ### Client part
 Inside the project directory, to build and run client:
@@ -49,16 +50,18 @@ Under the hood is this:
 
 
 see [Makefile](https://github.com/gynshu-one/goph-keeper/Makefile)
-This will generate TSL certs build docker image and run it on port 8080 as well as mongodb on port 27017
 
 
 ## Signing up and logging in
 <img style="max-width:600px" src="https://i.imgur.com/DDsrsM6.png">
 
-For simplicity, the password and secret are stored in the OS keychain.
-Every other log in would grab username from  /temp/session_id file and check OS keychain for password and secret
+For simplicity, the password and secret are stored in the OS keychain after registration.
 
-After logging in to a server with only password (Not secret) you will receive session cookie for 24 hours.
+Every other "log in" will grab username from  `/temp/session_id` file and check OS default `keychain` for password and secret.
+
+Secret is used for encrypting local data 
+
+After logging in to a server,client will receive session cookie for 24 hours.
 
 ## Configuring
 
@@ -69,7 +72,7 @@ The client will read the config.json file from its working directory.
 }
 ```
 
-The Server will config.json from its working dir
+The Server will read config.json from its working dir
 ```json
 {
   "MONGO_URI": "mongodb://admin:password@mongo_db:27017",

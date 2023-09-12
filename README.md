@@ -10,6 +10,7 @@ Graduation project of Advanced golang course at Yandex.Praktikum
 - [Chi router](https://github.com/go-chi/chi/v5)
 - [Resty](https://github.com/go-resty/resty/v2)
 - [Zero log](https://github.com/rs/zerolog/log)
+- [UI with Tveiw](https://github.com/rivo/tview)
 ## Installation
 
 ```bash
@@ -58,8 +59,7 @@ Under the hood is this:
 
 You can also run client without any flags and it will use default values
 
-see [Makefile](https://github.com/gynshu-one/goph-keeper/Makefile)
-This will generate TSL certs build docker image and run it on port 8080 as well as mongodb on port 27017
+see [Makefile](https://github.com/gynshu-one/goph-keeper/blob/main/Makefile)
 
 ## Docs
 ```bash
@@ -87,7 +87,7 @@ The client will read the config.json file from its working directory.
 }
 ```
 
-The Server will config.json from its working dir
+The Server will read config.json from its working dir
 ```json
 {
   "MONGO_URI": "mongodb://admin:password@mongo_db:27017",
@@ -100,14 +100,20 @@ The Server will config.json from its working dir
 ### Basic ui
 
 #### Main page
+This page is basically a list of items, each item takes two rows first is a name of an item second is a type of it.
 
+If item was deleted recently client would see name and "deleted" message. 
+
+Header part contains item creation buttons
+
+If you click on item name you will be switched to item edition page, it looks just like creation page, except additional buttons "delete" or item's `type` specific "generate one time" for `login` type
 <img style="max-width:600px" src="https://i.imgur.com/EswW6Xo.png">
 
-Adding a new bank card
+### Example of new item creation page
 
 <img style="max-width:600px" src="https://i.imgur.com/hXx4UzS.png">
 
-#### Editing it
+#### Edit page
 
 <img style="max-width:600px" src="https://i.imgur.com/AqI3rRM.png">
 
@@ -129,9 +135,9 @@ If onetime origin is invalid it will show error
 ## API
 
 Server has 4 endpoints
-Which are defined in [router.go](https://github.com/gynshu-one/goph-keeper/server/api/router/router.go)
+Which are defined in [router.go](https://github.com/gynshu-one/goph-keeper/blob/main/server/api/router/router.go)
 ### /user/create
-Creates new user with username and password with url params
+Creates new user with username and password from url params
 ```
 https://localhost:8080/user/create?email=your_username&password=your_password
 ```
@@ -147,17 +153,14 @@ Logs out user and deletes session cookie
 https://localhost:8080/user/logout
 ```
 ### /user/sync
-Synchronizes user data with server. Server check if user has session cookie via
-[middleware.go](https://github.com/gynshu-one/goph-keeper/server/api/middlewares/middleware.go)
-which uses [session.go](https://github.com/gynshu-one/goph-keeper/server/api/session/session.go)
+Synchronizes user data with server. Server checks if user has session cookie via
+[middleware.go](https://github.com/gynshu-one/goph-keeper/blob/main/server/api/middlewares/middleware.go)
+which uses [session.go](https://github.com/gynshu-one/goph-keeper/blob/main/server/api/auth/session.go)
 ```
 https://localhost:8080/user/sync
 ```
-`POST` data slice of `DataWrapper` structs
+endpoint expects `POST` request with slice of `DataWrapper` structs in json body 
 ```go
-// DataWrapper is a struct that wraps BasicData and provides additional information about the data
-// such as owner id, type, name, updated_at, created_at, deleted_at
-// it makes easier to store data in the database that shouldn't know anything about the data
 type DataWrapper struct {
 // ID is the unique identifier of the data
 ID string `json:"id" bson:"_id"`
@@ -175,7 +178,8 @@ Data      []byte `json:"data" bson:"data"`
 }
 ```
 
-struct in [general.go](https://github.com/gynshu-one/goph-keeper/common/models/general.go)
+struct in [general.go](https://github.com/gynshu-one/goph-keeper/blob/main/common/models/general.go)
+
 
 `Sync` happens imminently after logging in and every item creation, deletion or update.
 

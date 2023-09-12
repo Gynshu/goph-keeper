@@ -5,6 +5,7 @@ import (
 	"github.com/gynshu-one/goph-keeper/common/utils"
 )
 
+// BankCard is a struct for bank card
 type BankCard struct {
 	// Info is the additional info about the card
 	Info string `json:"info" bson:"info"`
@@ -20,6 +21,7 @@ type BankCard struct {
 	CardExp string `json:"card_exp" bson:"cardExp"`
 }
 
+// EncryptAll encrypts all sensitive fields
 func (data *BankCard) EncryptAll(passphrase string) (encryptedData []byte, err error) {
 	marshaled, err := json.Marshal(data)
 	if err != nil {
@@ -28,6 +30,7 @@ func (data *BankCard) EncryptAll(passphrase string) (encryptedData []byte, err e
 	return utils.EncryptData(marshaled, passphrase)
 }
 
+// DecryptAll decrypts all sensitive fields
 func (data *BankCard) DecryptAll(passphrase string, encrypteData []byte) error {
 	decrypted, err := utils.DecryptData(encrypteData, passphrase)
 	if err != nil {

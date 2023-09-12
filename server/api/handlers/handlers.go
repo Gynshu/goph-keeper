@@ -9,6 +9,7 @@ import (
 	"net/http"
 )
 
+// Handlers is an interface for all handlers at once
 type Handlers interface {
 	CreateUser(w http.ResponseWriter, r *http.Request)
 
@@ -23,6 +24,7 @@ type handler struct {
 	storage storage.Storage
 }
 
+// NewHandlers creates a new handlers instance
 func NewHandlers(storage storage.Storage) *handler {
 	return &handler{
 		storage: storage,
@@ -56,11 +58,11 @@ func (h *handler) SyncUserData(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	err = decoder.Decode(&fromClient)
 	if err != nil {
-		if err.Error() == "EOF" {
-
-		} else {
+		if err.Error() != "EOF" {
 			log.Debug().Err(err).Msg("failed to decode data")
 			http.Error(w, err.Error(), http.StatusBadRequest)
+		} else {
+			err = nil
 		}
 	}
 

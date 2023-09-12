@@ -1,7 +1,7 @@
 package middlewares
 
 import (
-	auth "github.com/gynshu-one/goph-keeper/server/api/auth"
+	"github.com/gynshu-one/goph-keeper/server/api/auth"
 	"net/http"
 )
 

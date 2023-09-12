@@ -1,11 +1,13 @@
 package UI
 
 import (
+	"context"
 	"fmt"
-	"github.com/gynshu-one/goph-keeper/common/models"
-	"github.com/rivo/tview"
 	"io"
 	"os"
+
+	"github.com/gynshu-one/goph-keeper/common/models"
+	"github.com/rivo/tview"
 )
 
 func (u *ui) text(data models.ArbitraryText, wrapper models.DataWrapper) *tview.Form {
@@ -40,7 +42,6 @@ func (u *ui) text(data models.ArbitraryText, wrapper models.DataWrapper) *tview.
 				return
 			}
 			u.goToMenu()
-			return
 		}).AddButton("Back", func() {
 		u.goToMenu()
 	})
@@ -52,7 +53,7 @@ func (u *ui) text(data models.ArbitraryText, wrapper models.DataWrapper) *tview.
 				u.throwModal(err, "text")
 				return
 			}
-			err = u.mediator.Sync(nil)
+			err = u.mediator.Sync(context.Background())
 			if err != nil {
 				u.throwModal(err, "text")
 				return
@@ -110,7 +111,6 @@ func (u *ui) bankCard(data models.BankCard, wrapper models.DataWrapper) *tview.F
 				return
 			}
 			u.goToMenu()
-			return
 		}).AddButton("Back", func() {
 		u.goToMenu()
 	})
@@ -122,7 +122,7 @@ func (u *ui) bankCard(data models.BankCard, wrapper models.DataWrapper) *tview.F
 				u.throwModal(err, "bank_card")
 				return
 			}
-			err = u.mediator.Sync(nil)
+			err = u.mediator.Sync(context.Background())
 			if err != nil {
 				u.throwModal(err, "bank_card")
 				return
@@ -191,7 +191,6 @@ func (u *ui) binary(data models.Binary, wrapper models.DataWrapper) *tview.Form 
 				return
 			}
 			u.goToMenu()
-			return
 		}).AddButton("Back", func() {
 		u.goToMenu()
 	})
@@ -203,7 +202,7 @@ func (u *ui) binary(data models.Binary, wrapper models.DataWrapper) *tview.Form 
 				u.throwModal(err, "binary")
 				return
 			}
-			err = u.mediator.Sync(nil)
+			err = u.mediator.Sync(context.Background())
 			if err != nil {
 				u.throwModal(err, "binary")
 				return
@@ -259,13 +258,19 @@ func (u *ui) login(data models.Login, wrapper models.DataWrapper) *tview.Form {
 				u.throwModal(fmt.Errorf("password is empty"), "login")
 				return
 			}
+			if data.OneTimeOrigin != "" {
+				_, _, err := data.GenerateOneTimePassword()
+				if err != nil {
+					u.throwModal(fmt.Errorf("invalid one time origin"), "login")
+					return
+				}
+			}
 			err := u.storage.AddEncrypt(&data, wrapper)
 			if err != nil {
 				u.throwModal(err, "login")
 				return
 			}
 			u.goToMenu()
-			return
 		}).AddButton("Back", func() {
 		u.goToMenu()
 	})
@@ -278,7 +283,7 @@ func (u *ui) login(data models.Login, wrapper models.DataWrapper) *tview.Form {
 				u.throwModal(err, "login")
 				return
 			}
-			err = u.mediator.Sync(nil)
+			err = u.mediator.Sync(context.Background())
 			if err != nil {
 				u.throwModal(err, "login")
 				return
@@ -299,7 +304,6 @@ func (u *ui) login(data models.Login, wrapper models.DataWrapper) *tview.Form {
 				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
 					u.goToMenu()
 				}), false)
-			return
 		})
 		form.SetTitle(" Edit login ")
 	} else {

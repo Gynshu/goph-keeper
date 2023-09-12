@@ -1,4 +1,4 @@
-package server
+package auth
 
 import (
 	"errors"
@@ -9,6 +9,13 @@ import (
 )
 
 var Sessions Manager
+
+func init() {
+	Sessions = &sessionManager{
+		mu:      &sync.RWMutex{},
+		storage: make(map[string]Session),
+	}
+}
 
 // Manager is an interface for managing sessions
 type Manager interface {
@@ -36,13 +43,6 @@ type Manager interface {
 type sessionManager struct {
 	mu      *sync.RWMutex
 	storage map[string]Session
-}
-
-func NewSessionManager() Manager {
-	return &sessionManager{
-		mu:      &sync.RWMutex{},
-		storage: make(map[string]Session),
-	}
 }
 
 // CreateSession creates a new session for a user
@@ -118,12 +118,14 @@ func (s *sessionManager) DeleteAllSessions(userID string) error {
 	return nil
 }
 
+// Session is a struct for storing session data
 type Session struct {
 	ID        string `json:"id" bson:"_id"`
 	userID    string
 	createdAt time.Time
 }
 
+// GetUserID returns a user ID for a given session
 func (s *Session) GetUserID() string {
 	return s.userID
 }

@@ -1,12 +1,15 @@
 package UI
 
 import (
+	"context"
+
 	"github.com/gynshu-one/goph-keeper/client/storage"
 	"github.com/gynshu-one/goph-keeper/client/sync"
 	"github.com/gynshu-one/goph-keeper/common/models"
 	"github.com/rivo/tview"
 )
 
+// UI is an interface for the UI
 type UI interface {
 	Pages() *tview.Pages
 }
@@ -18,6 +21,7 @@ type ui struct {
 	storage  storage.Storage
 }
 
+// NewUI creates a new UI instance with the given application
 func NewUI(app *tview.Application) UI {
 	newStorage := storage.NewStorage()
 	u := &ui{
@@ -29,6 +33,8 @@ func NewUI(app *tview.Application) UI {
 	return u
 }
 
+// Pages returns the predefined dynamic pages such as register, menu, new item pages etc.
+// This is basically UI routing
 func (u *ui) Pages() *tview.Pages {
 	u.pages.AddPage("register", u.grid(nil, u.register()), true, true)
 
@@ -47,11 +53,10 @@ func (u *ui) throwModal(message error, redirect string) {
 		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
 			u.pages.SwitchToPage(redirect)
 		}), false)
-	return
 }
 
 func (u *ui) goToMenu() {
-	err := u.mediator.Sync(nil)
+	err := u.mediator.Sync(context.Background())
 	if err != nil {
 		u.throwModal(err, "menu")
 		return

@@ -2,15 +2,15 @@ package main
 
 import (
 	"fmt"
-	auth "github.com/gynshu-one/goph-keeper/server/api/auth"
-	server "github.com/gynshu-one/goph-keeper/server/api/handlers"
-	"github.com/gynshu-one/goph-keeper/server/api/router"
-	"github.com/gynshu-one/goph-keeper/server/config"
-	"github.com/gynshu-one/goph-keeper/server/storage"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+
+	server "github.com/gynshu-one/goph-keeper/server/api/handlers"
+	"github.com/gynshu-one/goph-keeper/server/api/router"
+	"github.com/gynshu-one/goph-keeper/server/config"
+	"github.com/gynshu-one/goph-keeper/server/storage"
 
 	"github.com/rs/zerolog/log"
 )
@@ -37,16 +37,12 @@ func main() {
 	// init handlers
 	handlers := server.NewHandlers(newStorage)
 
-	// init sessions
-	auth.Sessions = auth.NewSessionManager()
-
 	r := router.NewRouter(handlers)
 
 	log.Info().Msg("Starting server")
 
 	go func() {
-		log.Info().Msgf("Listening on %s", config.GetConfig().HttpServerPort)
-		//err := http.ListenAndServeTLS(":"+config.GetConfig().HttpServerPort, "cert/server-cert.pem", "cert/server-key.pem", r)
+		log.Info().Msgf("Listening https on %s", config.GetConfig().HttpServerPort)
 		err := http.ListenAndServeTLS(
 			":"+config.GetConfig().HttpServerPort,
 			config.GetConfig().CertFilePath,
@@ -61,7 +57,6 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	log.Info().Msg("Shutdown Server ...")
-	//TODO:
 	log.Info().Msg("Server exiting")
 
 }

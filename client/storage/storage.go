@@ -1,17 +1,14 @@
-// Package storage
-// is a simple storage for data with mutex and map
-// it decrypts data on get and encrypts on set
 package storage
 
 import (
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/gynshu-one/goph-keeper/client/auth"
-	"github.com/gynshu-one/goph-keeper/client/config"
-	"github.com/gynshu-one/goph-keeper/common/models"
-	"github.com/rs/zerolog/log"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/gynshu-one/goph-keeper/client/auth"
+	"github.com/gynshu-one/goph-keeper/common/models"
+	"github.com/rs/zerolog/log"
 )
 
 // Storage is a struct that holds a sync.Map to store all models.
@@ -44,6 +41,7 @@ type storage struct {
 	repo map[string]models.DataWrapper
 }
 
+// NewStorage creates a new storage instance
 func NewStorage() Storage {
 	return &storage{
 		mu:   &sync.RWMutex{},
@@ -74,7 +72,7 @@ func (s *storage) AddEncrypt(data models.BasicData, wrapper models.DataWrapper) 
 	if wrapper.ID == "" {
 		wrapper.ID = uuid.NewString()
 	}
-	wrapper.OwnerID = config.CurrentUser.Username
+	wrapper.OwnerID = auth.CurrentUser.Username
 	wrapper.DeletedAt = 0
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -128,7 +126,7 @@ func (s *storage) FindDecrypt(id string) (data any, wrapper models.DataWrapper, 
 		return binary, wrapper, nil
 	}
 
-	return nil, wrapper, models.UnknownType
+	return nil, wrapper, models.ErrUnknownType
 }
 
 // Delete sets deleted time and clears data field of

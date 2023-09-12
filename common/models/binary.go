@@ -5,6 +5,7 @@ import (
 	"github.com/gynshu-one/goph-keeper/common/utils"
 )
 
+// Binary is a struct for binary data
 type Binary struct {
 	// Info is the additional info about the binary
 	Info string `json:"info" bson:"info"`

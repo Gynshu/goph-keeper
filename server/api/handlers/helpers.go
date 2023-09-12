@@ -5,6 +5,7 @@ import (
 	"net/http"
 )
 
+// FindSession finds the session for the request
 func FindSession(r *http.Request) (*auth.Session, error) {
 	sessionID, err := r.Cookie("session_id")
 	if err != nil {

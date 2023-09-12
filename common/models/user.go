@@ -1,5 +1,6 @@
 package models
 
+// User is a struct for user of client app
 type User struct {
 	// Email is the email of the user
 	Email string `json:"email" bson:"_id"`

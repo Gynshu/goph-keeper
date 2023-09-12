@@ -24,39 +24,57 @@ make serve
 Under the hood is this:
 ```bash
 @echo "Starting server..."
-sudo chmod +x server/cert/gen_keys.sh
-cd server/cert && ./gen_keys.sh
+# generates self-signed certificate
+mkdir -p ~/.goph-keeper
+openssl req -x509 -newkey rsa:4096 -keyout ~/.goph-keeper/key.pem -out ~/.goph-keeper/cert.pem -days 365 -nodes -subj '/CN=localhost' -addext 'subjectAltName = DNS:localhost'
 # runs mongodb
 docker-compose up --build -d
 # builds the server
 go build -o ./server_cmd ./server/cmd/main.go
-# runs the server
-./server_cmd -c ./server/config.json
+# runs the server with the pre-generated certificate and predefined mongo URI
+./server_cmd -port 8080 -cert ~/.goph-keeper/cert.pem -key ~/.goph-keeper/key.pem -mongo_uri mongodb://admin:password@localhost:27017
 ```
+`port` is the server port default: 8080<br>
+`cert` is the path to the certificate default: cert/cert.pem<br>
+`key` is the path to the key default: cert/key.pem<br>
+`mongo_uri` is the mongodb uri default: mongodb://admin:password@localhost:27017<br>
+if you run server without any flag or without cert and key it will generate self-signed certificate for `localhost` and run on port 8080
+
 
 ### Client part
 Inside the project directory, to build and run client:
 ```bash
 make ui
 ```
-
 Under the hood is this:
 ```bash
 @echo "Building client..."
 	go build -o ./client_cmd ./client/cmd/main.go
-	./client_cmd -c "./client/config.json"
+	./client_cmd -addr localhost:8080 -poll 5s -dump 10s
 ```
+`addr` is the server ip address default: localhost:8080<br>
+`poll` is the timer for synchronizing data with server default: 5s<br>
+`dump` is the timer for dumping data to the server default: 10s<br>
 
+You can also run client without any flags and it will use default values
 
 see [Makefile](https://github.com/gynshu-one/goph-keeper/Makefile)
 This will generate TSL certs build docker image and run it on port 8080 as well as mongodb on port 27017
+
+## Docs
+```bash
+ go install golang.org/x/tools/cmd/godoc
+ godoc -http=:6060
+```
+then visit:<br>
+http://localhost:6060/pkg/github.com/gynshu-one/goph-keeper/
 
 
 ## Signing up and logging in
 <img style="max-width:600px" src="https://i.imgur.com/DDsrsM6.png">
 
 For simplicity, the password and secret are stored in the OS keychain.
-Every other log in would grab username from  /temp/session_id file and check OS keychain for password and secret
+Every other log in would grab first user from OS keychain for password and secret
 
 After logging in to a server with only password (Not secret) you will receive session cookie for 24 hours.
 
@@ -104,7 +122,7 @@ Adding a new bank card
 #### Generating One time
 
 <img style="max-width:600px" src="https://i.imgur.com/UC2Fi5W.png">
-
+If onetime origin is invalid it will show error
 
 <img style="max-width:600px" src="https://i.imgur.com/bMAYiCI.png">
 
@@ -161,7 +179,7 @@ struct in [general.go](https://github.com/gynshu-one/goph-keeper/common/models/g
 
 `Sync` happens imminently after logging in and every item creation, deletion or update.
 
-`Client` does not have cache of the data, it only stores session cookie and username in /temp/session_id file.
+`Client` does not have cache of the data, it only stores username in ~/.goph-keeper/user.txt file.
 
 
 Deleted items would force server to remove `DataWrapper`'s Data field and set `DeletedAt` field.

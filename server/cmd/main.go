@@ -31,10 +31,10 @@ func main() {
 	fmt.Printf("Build date: %s\n", buildDate)
 	db := config.NewDb()
 
-	// init storage
+	// Init storage
 	newStorage := storage.NewStorage(db.Collection("user-data"), db.Collection("users"))
 
-	// init handlers
+	// Init handlers
 	handlers := server.NewHandlers(newStorage)
 
 	r := router.NewRouter(handlers)
@@ -42,6 +42,7 @@ func main() {
 	log.Info().Msg("Starting server")
 
 	go func() {
+		// Run https server
 		log.Info().Msgf("Listening https on %s", config.GetConfig().HttpServerPort)
 		err := http.ListenAndServeTLS(
 			":"+config.GetConfig().HttpServerPort,
@@ -53,6 +54,7 @@ func main() {
 		}
 	}()
 
+	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit

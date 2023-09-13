@@ -9,6 +9,8 @@ import (
 	"github.com/rivo/tview"
 )
 
+// itemsTable creates a table with all items.
+// this will be recreated and updated content every time we go to menu
 func (u *ui) itemsTable() (list *tview.List) {
 	items := u.storage.Get()
 	list = tview.NewList()

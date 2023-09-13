@@ -27,15 +27,21 @@ type config struct {
 
 // NewConfig creates a new configuration struct
 func init() {
+	// Initialize the config struct
 	instance = &config{}
+
+	// Read for flags
 	flag.StringVar(&instance.MongoURI, "mongo_uri",
 		"mongodb://admin:password@localhost:27017",
 		"MongoDB URI default: mongodb://admin:password@localhost:27017")
 	flag.StringVar(&instance.HttpServerPort, "port", "8080", "HTTP server port default: 8080")
 	flag.StringVar(&instance.CertFilePath, "cert", "", "Certificate file path default: empty")
 	flag.StringVar(&instance.KeyFilePath, "key", "", "Key file path default: empty")
+
+	// Parse the flags and ignore the rest
 	flag.CommandLine.SetOutput(io.Discard)
 
+	// If no certificate is provided, generate a self-signed one
 	if instance.CertFilePath == "" || instance.KeyFilePath == "" {
 		log.Info().Msg("Generating self-signed certificate")
 		osTempDir, err := os.UserHomeDir()

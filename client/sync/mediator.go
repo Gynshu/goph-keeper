@@ -56,6 +56,8 @@ func (m *mediator) SignUp(ctx context.Context, username, password string) error 
 	if username == "" || password == "" {
 		return fmt.Errorf("username or password is empty")
 	}
+
+	// Make request to server
 	get, err := m.client.NewRequest().SetContext(ctx).
 		SetQueryParam("email", username).
 		SetQueryParam("password", password).Get("https://" + config.GetConfig().ServerIP + RegisterEndpoint)
@@ -75,6 +77,8 @@ func (m *mediator) SignIn(ctx context.Context, username, password string) error 
 	if username == "" || password == "" {
 		return fmt.Errorf("username or password is empty")
 	}
+
+	// Make request to server
 	get, err := m.client.NewRequest().SetContext(ctx).
 		SetQueryParam("email", username).
 		SetQueryParam("password", password).Get("https://" + config.GetConfig().ServerIP + LoginEndpoint)
@@ -89,6 +93,7 @@ func (m *mediator) SignIn(ctx context.Context, username, password string) error 
 
 // Sync sends request to server to get data then swap it with local data
 func (m *mediator) Sync(ctx context.Context) error {
+	// Make request to server to get data don't forget to set cookie
 	response, err := m.client.NewRequest().SetContext(ctx).
 		SetBody(m.storage.Get()).SetCookie(&http.Cookie{
 		Name:  "session_id",
@@ -97,27 +102,33 @@ func (m *mediator) Sync(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	// Check if user is unauthorized
 	if response.StatusCode() == http.StatusUnauthorized {
+		// If so, try to get pass from keyring
 		pass, err_ := keyring.Get(config.ServiceName, auth.CurrentUser.Username)
 		if err_ != nil {
 			return err_
 		}
+
+		// And sign in again
 		err_ = m.SignIn(ctx, auth.CurrentUser.Username, pass)
 		if err_ != nil {
 			return err_
 		}
 	}
 
+	// Check if response is empty
 	if response.StatusCode() == http.StatusNoContent {
 		return nil
 	}
 
+	// If not, unmarshal and swap data
 	var serverData []models.DataWrapper
 	body := response.Body()
 	if len(body) == 0 {
 		return nil
 	}
-	// check fi body is empty or not
 	if err = json.Unmarshal(body, &serverData); err != nil {
 		if err.Error() == "EOF" {
 			serverData = nil
@@ -134,10 +145,12 @@ func (m *mediator) Sync(ctx context.Context) error {
 }
 
 func setCookies(cookie []*http.Cookie, username string) error {
-	// read cookie from response
+	// Read cookie from response
 	if len(cookie) == 0 {
 		return fmt.Errorf("failed to get cookie")
 	}
+
+	// Loop through cookies and the one with session_id
 	for _, c := range cookie {
 		if c.Name == "session_id" {
 			if c.Value == "" {

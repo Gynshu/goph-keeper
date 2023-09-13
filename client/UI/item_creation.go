@@ -10,6 +10,7 @@ import (
 	"github.com/rivo/tview"
 )
 
+// text creates a form for text data, the same for will be used for editing
 func (u *ui) text(data models.ArbitraryText, wrapper models.DataWrapper) *tview.Form {
 	if data.Text == "" {
 		data = models.ArbitraryText{}
@@ -137,6 +138,7 @@ func (u *ui) bankCard(data models.BankCard, wrapper models.DataWrapper) *tview.F
 	return form
 }
 
+// binary creates a form for binary data, the same for will be used for editing
 func (u *ui) binary(data models.Binary, wrapper models.DataWrapper) *tview.Form {
 	if data.Binary == nil {
 		data = models.Binary{}
@@ -217,6 +219,7 @@ func (u *ui) binary(data models.Binary, wrapper models.DataWrapper) *tview.Form 
 	return form
 }
 
+// login creates a form for login data, the same for will be used for editing
 func (u *ui) login(data models.Login, wrapper models.DataWrapper) *tview.Form {
 	if data.Username == "" {
 		data = models.Login{}

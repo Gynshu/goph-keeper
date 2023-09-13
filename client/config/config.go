@@ -23,10 +23,15 @@ type config struct {
 
 // NewConfig creates a new configuration struct
 func init() {
+	// Initialize the config struct
 	instance = &config{}
+
+	// Set the default values
 	flag.StringVar(&instance.ServerIP, "addr", "localhost:8080", "Server IP address default: localhost:8080")
 	flag.DurationVar(&instance.PollTimer, "poll", 5*time.Second, "Poll timer default: 5s")
 	flag.DurationVar(&instance.DumpTimer, "dump", 10*time.Second, "Dump timer default: 10s")
+
+	// Parse the flags and ignore the rest
 	flag.CommandLine.SetOutput(io.Discard)
 }
 

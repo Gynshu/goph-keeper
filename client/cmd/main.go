@@ -24,10 +24,14 @@ func main() {
 	fmt.Printf("Build version: %s\n", buildVersion)
 	fmt.Printf("Build date: %s\n", buildDate)
 
+	// Create a new application.
 	app := tview.NewApplication()
+	// Create a new UI.
 	newUI := UI.NewUI(app)
+	// Create a new pages.
 	pages := newUI.Pages()
 
+	// Run the application.
 	if err := app.SetRoot(pages, true).EnableMouse(true).Run(); err != nil {
 		log.Fatal().Err(err).Msg("Failed to run app")
 	}

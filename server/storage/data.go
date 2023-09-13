@@ -11,7 +11,7 @@ import (
 // SetData sets the model with the given id
 // if {it exists and update date of new data is newer it will be updated}, {otherwise it will be created.}
 func (s *storage) SetData(ctx context.Context, data models.DataWrapper) error {
-	// create a new document in mongo
+	// Create a new document in mongo
 	_, err := s.dataCollection.InsertOne(ctx, data)
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {

@@ -18,11 +18,11 @@ git clone https://github.com/gynshu-one/goph-keeper
 cd goph-keeper
 ```
 ### Server part
-Inside the project directory, to build and run server:
+To build and run the server inside the project directory:
 ```bash
 make serve
 ```
-Under the hood is this:
+This command does the following:"
 ```bash
 @echo "Starting server..."
 # generates self-signed certificate
@@ -39,15 +39,15 @@ go build -o ./server_cmd ./server/cmd/main.go
 `cert` is the path to the certificate default: cert/cert.pem<br>
 `key` is the path to the key default: cert/key.pem<br>
 `mongo_uri` is the mongodb uri default: mongodb://admin:password@localhost:27017<br>
-if you run server without any flag or without cert and key it will generate self-signed certificate for `localhost` and run on port 8080
+If you run the server without any flags, or without specifying a certificate and key, it will generate a self-signed certificate for `localhost` and run on port 8080.
 
 
 ### Client part
-Inside the project directory, to build and run client:
+To build and run the client inside the project directory:
 ```bash
 make ui
 ```
-Under the hood is this:
+This command does the following:"
 ```bash
 @echo "Building client..."
 	go build -o ./client_cmd ./client/cmd/main.go

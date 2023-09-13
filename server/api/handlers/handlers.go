@@ -38,6 +38,7 @@ func NewHandlers(storage storage.Storage) *handler {
 // Data's sensitive fields should be encrypted into binary
 // data should be sent in the []models.DataWrapper format:
 func (h *handler) SyncUserData(w http.ResponseWriter, r *http.Request) {
+	// Fist we need to get user id from session
 	session, err := FindSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -55,6 +56,7 @@ func (h *handler) SyncUserData(w http.ResponseWriter, r *http.Request) {
 
 	var fromClient []models.DataWrapper
 
+	// Decode data from client
 	decoder := json.NewDecoder(r.Body)
 	err = decoder.Decode(&fromClient)
 	if err != nil {
@@ -68,6 +70,7 @@ func (h *handler) SyncUserData(w http.ResponseWriter, r *http.Request) {
 
 	sessUserID := session.GetUserID()
 
+	// Upsert data to db if needed
 	for _, data := range fromClient {
 		if data.OwnerID != sessUserID {
 			log.Info().Msg("user tried to sync data that doesn't belong to him")
@@ -81,6 +84,7 @@ func (h *handler) SyncUserData(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Get fresh data from db
 	storedData, err := h.storage.GetData(r.Context(), userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -91,6 +95,7 @@ func (h *handler) SyncUserData(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, ErrNoDataFound.Error(), http.StatusNoContent)
 	}
 
+	// Marshal and send
 	marshalledData, err := json.Marshal(storedData)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

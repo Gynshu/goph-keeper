@@ -46,6 +46,7 @@ func (u *ui) Pages() *tview.Pages {
 	return u.pages
 }
 
+// throwModal throws a modal with the given message and redirects to the given page
 func (u *ui) throwModal(message error, redirect string) {
 	u.pages.AddAndSwitchToPage("error", tview.NewModal().
 		SetText(message.Error()).
@@ -55,6 +56,7 @@ func (u *ui) throwModal(message error, redirect string) {
 		}), false)
 }
 
+// goToMenu redirects to the menu page
 func (u *ui) goToMenu() {
 	err := u.mediator.Sync(context.Background())
 	if err != nil {
@@ -65,6 +67,7 @@ func (u *ui) goToMenu() {
 	u.pages.AddAndSwitchToPage("menu", u.grid(u.addItemButtons(), u.itemsTable()), true)
 }
 
+// grid creates a grid lyout with the given header and element
 func (u *ui) grid(header tview.Primitive, elem tview.Primitive) *tview.Grid {
 	newPrimitive := func(text string) tview.Primitive {
 		return tview.NewTextView().

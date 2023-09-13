@@ -51,7 +51,7 @@ func (s *sessionManager) CreateSession(userID string) (*Session, error) {
 	if userID == "" {
 		return nil, errors.New("user id is empty")
 	}
-
+	// Create instance of Session
 	session := Session{
 		ID:        uuid.New().String(),
 		userID:    userID,
@@ -59,6 +59,8 @@ func (s *sessionManager) CreateSession(userID string) (*Session, error) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	// Add session to storage
 	s.storage[session.ID] = session
 
 	return &session, nil
@@ -69,10 +71,14 @@ func (s *sessionManager) CreateSession(userID string) (*Session, error) {
 func (s *sessionManager) GetSession(sessionID string) (*Session, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+
+	// Check if session exists
 	session, ok := s.storage[sessionID]
 	if !ok {
 		return nil, errors.New("session not found")
 	}
+
+	// Check if session is expired
 	if time.Now().Sub(session.createdAt) > 24*time.Hour {
 		delete(s.storage, sessionID)
 		return nil, errors.New("session is expired")
@@ -94,10 +100,13 @@ func (s *sessionManager) DeleteSession(sessionID string) error {
 func (s *sessionManager) CheckSession(sessionID string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	// Check if session exists
 	session, ok := s.storage[sessionID]
 	if !ok {
 		return errors.New("session not found")
 	}
+
+	// Check if session is expired
 	if time.Now().Sub(session.createdAt) > 24*time.Hour {
 		delete(s.storage, sessionID)
 		return errors.New("session is expired")

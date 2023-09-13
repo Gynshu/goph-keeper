@@ -86,10 +86,14 @@ func (s *storage) AddEncrypt(data models.BasicData, wrapper models.DataWrapper) 
 func (s *storage) FindDecrypt(id string) (data any, wrapper models.DataWrapper, err error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+
+	// Find wrapper
 	wrapper, ok := s.repo[id]
 	if !ok {
 		return nil, wrapper, models.ErrDeleted
 	}
+
+	// Decrypt data with os keyring secret
 	secret := auth.GetSecret()
 	if secret == "" {
 		log.Fatal().Msg("secret is nil")
@@ -99,6 +103,7 @@ func (s *storage) FindDecrypt(id string) (data any, wrapper models.DataWrapper, 
 		return nil, wrapper, models.ErrDeleted
 	}
 
+	// Determine type and decrypt
 	switch wrapper.Type {
 	case models.LoginType:
 		var login models.Login
@@ -133,10 +138,14 @@ func (s *storage) FindDecrypt(id string) (data any, wrapper models.DataWrapper, 
 func (s *storage) Delete(id string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	// Find wrapper
 	item, ok := s.repo[id]
 	if !ok {
 		return fmt.Errorf("item with id %s not found", id)
 	}
+
+	// Set basic fields
 	item.DeletedAt = time.Now().Unix()
 	item.UpdatedAt = time.Now().Unix()
 	item.Data = nil
@@ -152,7 +161,8 @@ func (s *storage) Swap(data []models.DataWrapper) error {
 	if data == nil {
 		return nil
 	}
-	// full clear
+
+	// Completely replace the storage
 	s.repo = make(map[string]models.DataWrapper)
 	for i := range data {
 		s.repo[data[i].ID] = data[i]
@@ -164,6 +174,8 @@ func (s *storage) Swap(data []models.DataWrapper) error {
 func (s *storage) Get() (data []models.DataWrapper) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+
+	// Copy all data from the storage to the slice
 	for v := range s.repo {
 		data = append(data, s.repo[v])
 	}

@@ -2,11 +2,11 @@ package models
 
 import (
 	"encoding/json"
-	"github.com/gynshu-one/goph-keeper/common/utils"
 	"time"
 
+	"github.com/gynshu-one/goph-keeper/common/utils"
+
 	"github.com/pquerna/otp/totp"
-	"github.com/rs/zerolog/log"
 )
 
 // Login is the model for a login
@@ -47,12 +47,10 @@ func (data *Login) RegisterOneTime(secret string) (success bool) {
 
 	o, err := totp.GenerateCode(secret, time.Now())
 	if err != nil {
-		log.Err(err).Msg("Error generating OTP")
 		return false
 	}
 	valid := totp.Validate(o, secret)
 	if !valid {
-		log.Err(err).Msg("Error validating OTP")
 		return false
 	}
 	data.OneTimeOrigin = secret
@@ -64,7 +62,6 @@ func (data *Login) GenerateOneTimePassword() (oneTime string, genTime time.Time,
 	start := time.Now()
 	key, err := totp.GenerateCode(data.OneTimeOrigin, start)
 	if err != nil {
-		log.Err(err).Msg("Error generating OTP")
 		return "", time.Time{}, err
 	}
 	return key, start, nil

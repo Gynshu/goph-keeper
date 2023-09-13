@@ -1,17 +1,14 @@
-// Package storage
-// is a simple storage for data with mutex and map
-// it decrypts data on get and encrypts on set
 package storage
 
 import (
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/gynshu-one/goph-keeper/client/auth"
-	"github.com/gynshu-one/goph-keeper/client/config"
-	"github.com/gynshu-one/goph-keeper/common/models"
-	"github.com/rs/zerolog/log"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/gynshu-one/goph-keeper/client/auth"
+	"github.com/gynshu-one/goph-keeper/common/models"
+	"github.com/rs/zerolog/log"
 )
 
 // Storage is a struct that holds a sync.Map to store all models.
@@ -44,6 +41,7 @@ type storage struct {
 	repo map[string]models.DataWrapper
 }
 
+// NewStorage creates a new storage instance
 func NewStorage() Storage {
 	return &storage{
 		mu:   &sync.RWMutex{},
@@ -74,7 +72,7 @@ func (s *storage) AddEncrypt(data models.BasicData, wrapper models.DataWrapper) 
 	if wrapper.ID == "" {
 		wrapper.ID = uuid.NewString()
 	}
-	wrapper.OwnerID = config.CurrentUser.Username
+	wrapper.OwnerID = auth.CurrentUser.Username
 	wrapper.DeletedAt = 0
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -88,10 +86,14 @@ func (s *storage) AddEncrypt(data models.BasicData, wrapper models.DataWrapper) 
 func (s *storage) FindDecrypt(id string) (data any, wrapper models.DataWrapper, err error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+
+	// Find wrapper
 	wrapper, ok := s.repo[id]
 	if !ok {
 		return nil, wrapper, models.ErrDeleted
 	}
+
+	// Decrypt data with os keyring secret
 	secret := auth.GetSecret()
 	if secret == "" {
 		log.Fatal().Msg("secret is nil")
@@ -101,6 +103,7 @@ func (s *storage) FindDecrypt(id string) (data any, wrapper models.DataWrapper, 
 		return nil, wrapper, models.ErrDeleted
 	}
 
+	// Determine type and decrypt
 	switch wrapper.Type {
 	case models.LoginType:
 		var login models.Login
@@ -128,17 +131,21 @@ func (s *storage) FindDecrypt(id string) (data any, wrapper models.DataWrapper, 
 		return binary, wrapper, nil
 	}
 
-	return nil, wrapper, models.UnknownType
+	return nil, wrapper, models.ErrUnknownType
 }
 
 // Delete sets deleted time and clears data field of
 func (s *storage) Delete(id string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	// Find wrapper
 	item, ok := s.repo[id]
 	if !ok {
 		return fmt.Errorf("item with id %s not found", id)
 	}
+
+	// Set basic fields
 	item.DeletedAt = time.Now().Unix()
 	item.UpdatedAt = time.Now().Unix()
 	item.Data = nil
@@ -154,7 +161,8 @@ func (s *storage) Swap(data []models.DataWrapper) error {
 	if data == nil {
 		return nil
 	}
-	// full clear
+
+	// Completely replace the storage
 	s.repo = make(map[string]models.DataWrapper)
 	for i := range data {
 		s.repo[data[i].ID] = data[i]
@@ -166,6 +174,8 @@ func (s *storage) Swap(data []models.DataWrapper) error {
 func (s *storage) Get() (data []models.DataWrapper) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+
+	// Copy all data from the storage to the slice
 	for v := range s.repo {
 		data = append(data, s.repo[v])
 	}

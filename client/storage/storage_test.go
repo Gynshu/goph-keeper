@@ -1,12 +1,15 @@
 package storage
 
 import (
+	"testing"
+
 	"github.com/gynshu-one/goph-keeper/client/auth"
 	"github.com/gynshu-one/goph-keeper/common/models"
-	"testing"
+	"github.com/zalando/go-keyring"
 )
 
 func TestAddEncryptAndFindDecrypt(t *testing.T) {
+	keyring.MockInit()
 	// Set a secret for encryption
 	auth.SetSecret("test_secret")
 
@@ -49,6 +52,7 @@ func TestAddEncryptAndFindDecrypt(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
+	keyring.MockInit()
 	// Set a secret for encryption
 	auth.SetSecret("test_secret")
 
@@ -94,6 +98,7 @@ func TestDelete(t *testing.T) {
 }
 
 func TestSwapAndGetData(t *testing.T) {
+	keyring.MockInit()
 	// Set a secret for encryption
 	auth.SetSecret("test_secret")
 
@@ -135,6 +140,7 @@ func TestSwapAndGetData(t *testing.T) {
 }
 
 func TestGetNonExistentData(t *testing.T) {
+	keyring.MockInit()
 	// Create a new storage instance
 	s := NewStorage()
 
@@ -144,5 +150,37 @@ func TestGetNonExistentData(t *testing.T) {
 	// Check if the data is an empty slice (no data in storage)
 	if len(data) != 0 {
 		t.Errorf("Expected an empty slice, got: %v", data)
+	}
+}
+
+func TestSwap(t *testing.T) {
+	keyring.MockInit()
+	// Create a new storage instance
+	s := NewStorage()
+
+	// Define test data
+	testData := []models.DataWrapper{
+		{ID: "1", Type: "foo", Data: []byte("bar")},
+		{ID: "2", Type: "baz", Data: []byte("qux")},
+	}
+
+	// Swap the data in the storage
+	err := s.Swap(testData)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	// Get the data from the storage
+	data := s.Get()
+
+	// Check if the length of the data matches the length of the test data
+	if len(data) != len(testData) {
+		t.Errorf("Length of data does not match length of test data")
+	}
+
+	for _, d := range data {
+		if !(d.ID == "1" || d.ID == "2") {
+			t.Errorf("Unexpected data: %v", d)
+		}
 	}
 }

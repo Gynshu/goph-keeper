@@ -1,26 +1,28 @@
-package handlers
+package handlers_test
 
 import (
 	"context"
-	auth "github.com/gynshu-one/goph-keeper/server/api/auth"
+	"github.com/gynshu-one/goph-keeper/server/storage"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
+
+	auth "github.com/gynshu-one/goph-keeper/server/api/auth"
+	"github.com/gynshu-one/goph-keeper/server/api/handlers"
 
 	"github.com/gynshu-one/goph-keeper/common/models"
 	"github.com/gynshu-one/goph-keeper/server/api/utils"
 )
 
 func TestCreateUser(t *testing.T) {
-	auth.Sessions = auth.NewSessionManager()
 	// Create a mock database.
-	stor := &mockStorage{
-		user: models.User{},
+	mockStorage := &storage.MockStorage{
+		User: models.User{},
 	}
 
 	// Create a test handlers with the mock database.
-	handlers := NewHandlers(stor)
+	hand := handlers.NewHandlers(mockStorage)
 
 	// Create test data for the request.
 	formData := url.Values{
@@ -33,7 +35,7 @@ func TestCreateUser(t *testing.T) {
 	response := httptest.NewRecorder()
 
 	// Call the CreateUser handlers function.
-	handlers.CreateUser(response, request)
+	hand.CreateUser(response, request)
 
 	// Check the HTTP response status code.
 	if response.Code != http.StatusOK {
@@ -41,7 +43,7 @@ func TestCreateUser(t *testing.T) {
 	}
 
 	// Check if the user was created in the mock database.
-	user, err := stor.GetUser(context.Background(), formData.Get("email"))
+	user, err := mockStorage.GetUser(context.Background(), formData.Get("email"))
 	if err != nil {
 		t.Error("User not created")
 	}
@@ -57,21 +59,20 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestLoginUser(t *testing.T) {
-	auth.Sessions = auth.NewSessionManager()
 	// Create a mock database.
-	stor := &mockStorage{
-		user: models.User{},
+	mockStorage := &storage.MockStorage{
+		User: models.User{},
 	}
 
-	// Create a test handler with the mock database.
-	handlers := NewHandlers(stor)
+	// Create a test handlers with the mock database.
+	hand := handlers.NewHandlers(mockStorage)
 
 	// Create a test user and add it to the mock database.
 	user := models.User{
 		Email:      "test@example.com",
 		Passphrase: utils.HashMasterKey("password123"),
 	}
-	err := stor.CreateUser(context.Background(), user)
+	err := mockStorage.CreateUser(context.Background(), user)
 	if err != nil {
 		return
 	}
@@ -87,7 +88,7 @@ func TestLoginUser(t *testing.T) {
 	response := httptest.NewRecorder()
 
 	// Call the LoginUser handler function.
-	handlers.LoginUser(response, request)
+	hand.LoginUser(response, request)
 
 	// Check the HTTP response status code.
 	if response.Code != http.StatusOK {
@@ -102,21 +103,20 @@ func TestLoginUser(t *testing.T) {
 }
 
 func TestLogoutUser(t *testing.T) {
-	auth.Sessions = auth.NewSessionManager()
 	// Create a mock database.
-	stor := &mockStorage{
-		user: models.User{},
+	mockStorage := &storage.MockStorage{
+		User: models.User{},
 	}
 
-	// Create a test handler with the mock database.
-	handlers := NewHandlers(stor)
+	// Create a test handlers with the mock database.
+	hand := handlers.NewHandlers(mockStorage)
 
 	// Create a test user and add it to the mock database.
 	user := models.User{
 		Email:      "test@example.com",
 		Passphrase: utils.HashMasterKey("password123"),
 	}
-	err := stor.CreateUser(context.Background(), user)
+	err := mockStorage.CreateUser(context.Background(), user)
 	if err != nil {
 		return
 	}
@@ -133,7 +133,7 @@ func TestLogoutUser(t *testing.T) {
 	response := httptest.NewRecorder()
 
 	// Call the LogoutUser handler function.
-	handlers.LogoutUser(response, request)
+	hand.LogoutUser(response, request)
 
 	// Check the HTTP response status code.
 	if response.Code != http.StatusOK {

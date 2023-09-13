@@ -3,22 +3,43 @@ package sync
 import (
 	"context"
 	"crypto/tls"
-	"github.com/go-chi/chi/v5"
-	"github.com/gynshu-one/goph-keeper/client/config"
-	"github.com/gynshu-one/goph-keeper/client/storage"
-	"github.com/rs/zerolog/log"
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/gynshu-one/goph-keeper/client/auth"
+	"github.com/gynshu-one/goph-keeper/client/storage"
+	"github.com/rs/zerolog/log"
+	"github.com/zalando/go-keyring"
 )
+
+func TestNewMediator(t *testing.T) {
+	keyring.MockInit()
+	// Create a new storage instance
+	newStorage := storage.NewStorage()
+
+	// Create a new newMediator instance
+	newMediator := NewMediator(newStorage)
+
+	// Check if the newMediator client is not nil
+	if newMediator.client == nil {
+		t.Errorf("Mediator client is nil")
+	}
+
+	// Check if the newMediator storage is not nil
+	if newMediator.storage == nil {
+		t.Errorf("Mediator storage is nil")
+	}
+}
 
 // MockHTTPServer is a helper function to create a mock HTTP server for testing.
 func MockChiHTTPServer() *httptest.Server {
+	keyring.MockInit()
 	l, err := net.Listen("tcp", "127.0.0.1:8080")
 	if err != nil {
-		log.Fatal()
+		log.Fatal().Err(err).Msg("Failed to create listener")
 	}
 	r := chi.NewRouter()
 	r.Route("/user", func(r chi.Router) {
@@ -55,15 +76,9 @@ func MockChiHTTPServer() *httptest.Server {
 	server.StartTLS()
 	return server
 }
-func init() {
-	err := config.NewConfig()
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to read config file please check if it exists and is valid" +
-			"Config should be in json format and contain SERVER_IP, POLL_TIMER, DUMP_TIMER")
-	}
-}
+
 func TestSignUp(t *testing.T) {
-	tempDir := "/tmp"
+	keyring.MockInit()
 	server := MockChiHTTPServer()
 	defer server.Close()
 
@@ -75,22 +90,15 @@ func TestSignUp(t *testing.T) {
 		t.Errorf("SignUp failed with error: %v", err)
 	}
 
-	// Check if the session file was created
-	sessionFilePath := tempDir + "/" + config.SessionFile
-	_, err = os.Stat(sessionFilePath)
-	if err != nil {
-		t.Errorf("Session file was not created: %v", err)
-	}
-
-	// Clean up: Remove the session file
-	_ = os.Remove(sessionFilePath)
+	// Check if the session created
+	auth.CurrentUser.Username = "testuser"
+	auth.CurrentUser.SessionID = "test"
 }
 
 func TestSignIn(t *testing.T) {
+	keyring.MockInit()
 	server := MockChiHTTPServer()
 	defer server.Close()
-	// Create a temporary directory for session files (change as needed)
-	tempDir := "/tmp"
 
 	// Create a mediator with the mock server
 	newMediator := NewMediator(storage.NewStorage())
@@ -101,17 +109,12 @@ func TestSignIn(t *testing.T) {
 		t.Errorf("SignIn failed with error: %v", err)
 	}
 
-	// Check if the session file was created
-	sessionFilePath := tempDir + "/" + config.SessionFile
-	_, err = os.Stat(sessionFilePath)
-	if err != nil {
-		t.Errorf("Session file was not created: %v", err)
-	}
-
-	// Clean up: Remove the session file
-	_ = os.Remove(sessionFilePath)
+	// Check if the session created
+	auth.CurrentUser.Username = "testuser"
+	auth.CurrentUser.SessionID = "test"
 }
 func TestSync(t *testing.T) {
+	keyring.MockInit()
 	server := MockChiHTTPServer()
 	defer server.Close()
 
@@ -126,28 +129,29 @@ func TestSync(t *testing.T) {
 
 }
 
-func TestCreateUserSessionFiles(t *testing.T) {
-	tempDir := "/tmp"
-
-	server := MockChiHTTPServer()
-	defer server.Close()
-
-	// Create a mediator instance
-	newMediator := NewMediator(storage.NewStorage())
-
-	// Test the createUserSessionFiles function
-	err := newMediator.createUserSessionFiles()
-	if err != nil {
-		t.Errorf("createUserSessionFiles failed with error: %v", err)
+func TestSetCookies(t *testing.T) {
+	keyring.MockInit()
+	// Define test cookies
+	cookies := []*http.Cookie{
+		{Name: "session_id", Value: "test-session-id"},
 	}
 
-	// Check if the session file was created
-	sessionFilePath := tempDir + "/" + config.SessionFile
-	_, err = os.Stat(sessionFilePath)
+	// Define test username
+	username := "test-username"
+
+	// Set the cookies
+	err := setCookies(cookies, username)
 	if err != nil {
-		t.Errorf("Session file was not created: %v", err)
+		t.Errorf("Unexpected error: %v", err)
 	}
 
-	// Clean up: Remove the session file
-	_ = os.Remove(sessionFilePath)
+	// Check if the current user username matches the test username
+	if auth.CurrentUser.Username != username {
+		t.Errorf("Current user username does not match test username")
+	}
+
+	// Check if the current user session ID matches the test session ID
+	if auth.CurrentUser.SessionID != "test-session-id" {
+		t.Errorf("Current user session ID does not match test session ID")
+	}
 }

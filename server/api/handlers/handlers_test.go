@@ -1,29 +1,32 @@
-package handlers
+package handlers_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
-	auth "github.com/gynshu-one/goph-keeper/server/api/auth"
+	"github.com/gynshu-one/goph-keeper/server/storage"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	auth "github.com/gynshu-one/goph-keeper/server/api/auth"
+	"github.com/gynshu-one/goph-keeper/server/api/handlers"
 
 	"github.com/gynshu-one/goph-keeper/common/models"
 )
 
 func TestSyncUserData(t *testing.T) {
 	// Create a mock storage implementation.
-	mock := &mockStorage{
-		data: make(map[string][]models.DataWrapper),
+	mock := &storage.MockStorage{
+		Data: make(map[string][]models.DataWrapper),
 	}
 
 	// Create a test handler with the mock storage.
-	hndlr := NewHandlers(mock)
+	hndlr := handlers.NewHandlers(mock)
 
 	// Create a test user session.
 	userID := "testUserID"
-	auth.Sessions = auth.NewSessionManager()
 	session, _ := auth.Sessions.CreateSession(userID)
 
 	// Create test data to send in the request body.
@@ -79,7 +82,7 @@ func TestSyncUserData(t *testing.T) {
 	}
 
 	// Verify that the data was saved in the mock storage.
-	storedData, err := mock.GetData(nil, userID)
+	storedData, err := mock.GetData(context.Background(), userID)
 	if err != nil {
 		t.Errorf("Failed to retrieve data from storage: %v", err)
 	}

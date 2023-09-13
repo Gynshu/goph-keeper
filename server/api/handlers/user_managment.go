@@ -22,6 +22,7 @@ import (
 func (h *handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 
+	// Read and validate params
 	email := r.FormValue("email")
 	password := r.FormValue("password")
 
@@ -43,7 +44,7 @@ func (h *handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	// Hash master key (no salt and pepper for now)
 	user.Passphrase = utils.HashMasterKey(password)
 
-	// clean mem
+	// Clean mem
 	password = utils.GenRandomString(len(password) + 1)
 
 	user.CreatedAt = time.Now().Unix()
@@ -67,9 +68,10 @@ func (h *handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// header
+	// Header
 	w.Header().Set("Authorization", "Bearer "+session.ID)
-	// cookie
+
+	// Don't forget to set a cookie
 	http.SetCookie(w, &http.Cookie{
 		Name:  "session_id",
 		Value: session.ID,
@@ -88,6 +90,7 @@ func (h *handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 func (h *handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 
+	// Read and validate params
 	email := r.FormValue("email")
 	if email == "" {
 		http.Error(w, "email is empty", http.StatusBadRequest)
@@ -98,6 +101,7 @@ func (h *handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Find user in db
 	user, err := h.storage.GetUser(r.Context(), email)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
@@ -108,6 +112,7 @@ func (h *handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// If exists, check password
 	password := r.FormValue("password")
 	if password == "" {
 		http.Error(w, "master key is empty", http.StatusBadRequest)
@@ -118,7 +123,7 @@ func (h *handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// clean mem
+	// Clean mem
 	password = utils.GenRandomString(len(password) + 1)
 
 	session, err := auth.Sessions.CreateSession(user.Email)
@@ -127,9 +132,9 @@ func (h *handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// header
+	// Header
 	w.Header().Set("Authorization", "Bearer "+session.ID)
-	// cookie
+	// Cookie
 	http.SetCookie(w, &http.Cookie{
 		Name:  "session_id",
 		Value: session.ID,

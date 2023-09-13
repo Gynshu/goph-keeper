@@ -1,4 +1,4 @@
-package server
+package auth
 
 import (
 	"github.com/google/uuid"
@@ -6,12 +6,9 @@ import (
 )
 
 func TestSessionManager_CreateSession(t *testing.T) {
-	// Create a new session manager.
-	manager := NewSessionManager()
-
 	// Test creating a new session.
 	userID := "testUserID"
-	session, err := manager.CreateSession(userID)
+	session, err := Sessions.CreateSession(userID)
 	if err != nil {
 		t.Errorf("CreateSession failed: %v", err)
 	}
@@ -23,16 +20,13 @@ func TestSessionManager_CreateSession(t *testing.T) {
 }
 
 func TestSessionManager_GetSession(t *testing.T) {
-	// Create a new session manager.
-	manager := NewSessionManager()
-
 	// Create a test session.
 	userID := "testUserID"
-	session, _ := manager.CreateSession(userID)
+	session, _ := Sessions.CreateSession(userID)
 	sessionID := session.ID
 
 	// Test retrieving an existing session.
-	retrievedSession, err := manager.GetSession(sessionID)
+	retrievedSession, err := Sessions.GetSession(sessionID)
 	if err != nil {
 		t.Errorf("GetSession failed: %v", err)
 	}
@@ -43,22 +37,19 @@ func TestSessionManager_GetSession(t *testing.T) {
 	}
 
 	// Test retrieving a non-existent session.
-	_, err = manager.GetSession(uuid.New().String())
+	_, err = Sessions.GetSession(uuid.New().String())
 	if err == nil {
 		t.Error("GetSession should have returned an error for a non-existent session")
 	}
 }
 
 func TestSessionManager_CheckSession(t *testing.T) {
-	// Create a new session manager.
-	manager := NewSessionManager()
-
 	// Create a test session.
 	userID := "testUserID"
-	session, _ := manager.CreateSession(userID)
+	session, _ := Sessions.CreateSession(userID)
 
 	// Test checking a valid session.
-	err := manager.CheckSession(session.ID)
+	err := Sessions.CheckSession(session.ID)
 	if err != nil {
 		t.Errorf("CheckSession failed for a valid session: %v", err)
 	}
@@ -67,56 +58,50 @@ func TestSessionManager_CheckSession(t *testing.T) {
 	// field values with the session struct and returns only values
 
 	// Test checking a non-existent session.
-	err = manager.CheckSession(uuid.New().String())
+	err = Sessions.CheckSession(uuid.New().String())
 	if err == nil {
 		t.Error("CheckSession should have returned an error for a non-existent session")
 	}
 }
 
 func TestSessionManager_DeleteSession(t *testing.T) {
-	// Create a new session manager.
-	manager := NewSessionManager()
-
 	// Create a test session.
 	userID := "testUserID"
-	session, _ := manager.CreateSession(userID)
+	session, _ := Sessions.CreateSession(userID)
 	sessionID := session.ID
 
 	// Test deleting an existing session.
-	err := manager.DeleteSession(sessionID)
+	err := Sessions.DeleteSession(sessionID)
 	if err != nil {
 		t.Errorf("DeleteSession failed: %v", err)
 	}
 
 	// Test deleting a non-existent session.
-	err = manager.CheckSession(sessionID)
+	err = Sessions.CheckSession(sessionID)
 	if err == nil {
 		t.Error("DeleteSession should have returned an error for a non-existent session")
 	}
 }
 
 func TestSessionManager_DeleteAllSessions(t *testing.T) {
-	// Create a new session manager.
-	manager := NewSessionManager()
-
 	// Create test sessions.
 	userID := "testUserID"
-	session1, _ := manager.CreateSession(userID)
-	session2, _ := manager.CreateSession(userID)
+	session1, _ := Sessions.CreateSession(userID)
+	session2, _ := Sessions.CreateSession(userID)
 
 	// Test deleting all sessions for a user.
-	err := manager.DeleteAllSessions(userID)
+	err := Sessions.DeleteAllSessions(userID)
 	if err != nil {
 		t.Errorf("DeleteAllSessions failed: %v", err)
 	}
 
 	// Test that the sessions were deleted.
-	_, err = manager.GetSession(session1.ID)
+	_, err = Sessions.GetSession(session1.ID)
 	if err == nil {
 		t.Error("Session 1 should have been deleted")
 	}
 
-	_, err = manager.GetSession(session2.ID)
+	_, err = Sessions.GetSession(session2.ID)
 	if err == nil {
 		t.Error("Session 2 should have been deleted")
 	}

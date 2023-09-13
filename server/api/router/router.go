@@ -9,6 +9,12 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
+// NewRouter returns a new router instance
+// with fallowing api endpoints
+// /user/create
+// /user/login
+// /user/logout
+// /user/sync
 func NewRouter(handlers handlers.Handlers) *chi.Mux {
 	// New Chi router
 	r := chi.NewRouter()

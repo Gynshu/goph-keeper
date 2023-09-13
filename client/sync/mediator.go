@@ -5,14 +5,14 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	"github.com/go-resty/resty/v2"
+	"github.com/gynshu-one/goph-keeper/client/auth"
 	"github.com/gynshu-one/goph-keeper/client/config"
 	"github.com/gynshu-one/goph-keeper/client/storage"
 	"github.com/gynshu-one/goph-keeper/common/models"
-	"github.com/rs/zerolog/log"
 	"github.com/zalando/go-keyring"
-	"net/http"
-	"os"
 )
 
 const (
@@ -36,6 +36,7 @@ type mediator struct {
 	storage storage.Storage
 }
 
+// NewMediator creates new mediator
 func NewMediator(storage storage.Storage) *mediator {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -55,6 +56,8 @@ func (m *mediator) SignUp(ctx context.Context, username, password string) error 
 	if username == "" || password == "" {
 		return fmt.Errorf("username or password is empty")
 	}
+
+	// Make request to server
 	get, err := m.client.NewRequest().SetContext(ctx).
 		SetQueryParam("email", username).
 		SetQueryParam("password", password).Get("https://" + config.GetConfig().ServerIP + RegisterEndpoint)
@@ -64,26 +67,7 @@ func (m *mediator) SignUp(ctx context.Context, username, password string) error 
 	if get.StatusCode() != 200 {
 		return fmt.Errorf("failed to register, status code: %d, and error %s", get.StatusCode(), get.Body())
 	}
-	// read cookie from response
-	cookie := get.Cookies()
-	if len(cookie) == 0 {
-		return fmt.Errorf("failed to get cookie")
-	}
-	for _, c := range cookie {
-		if c.Name == "session_id" {
-			if c.Value == "" {
-				return fmt.Errorf("failed to get cookie")
-			}
-			config.CurrentUser.Username = username
-			config.CurrentUser.SessionID = c.Value
-			err = m.createUserSessionFiles()
-			if err != nil {
-				return err
-			}
-			return nil
-		}
-	}
-	return fmt.Errorf("failed to get cookie")
+	return setCookies(get.Cookies(), username)
 }
 
 // SignIn sends request to server to login user
@@ -93,6 +77,8 @@ func (m *mediator) SignIn(ctx context.Context, username, password string) error 
 	if username == "" || password == "" {
 		return fmt.Errorf("username or password is empty")
 	}
+
+	// Make request to server
 	get, err := m.client.NewRequest().SetContext(ctx).
 		SetQueryParam("email", username).
 		SetQueryParam("password", password).Get("https://" + config.GetConfig().ServerIP + LoginEndpoint)
@@ -102,56 +88,47 @@ func (m *mediator) SignIn(ctx context.Context, username, password string) error 
 	if get.StatusCode() != 200 {
 		return fmt.Errorf("failed to login, status code: %d and response %s", get.StatusCode(), get.Body())
 	}
-	// read cookie from response
-	cookie := get.Cookies()
-	if len(cookie) == 0 {
-		return fmt.Errorf("failed to get cookie")
-	}
-	for _, c := range cookie {
-		if c.Name == "session_id" {
-			config.CurrentUser.Username = username
-			config.CurrentUser.SessionID = c.Value
-			err = m.createUserSessionFiles()
-			if err != nil {
-				return err
-			}
-			return nil
-		}
-	}
-	return nil
+	return setCookies(get.Cookies(), username)
 }
 
 // Sync sends request to server to get data then swap it with local data
 func (m *mediator) Sync(ctx context.Context) error {
+	// Make request to server to get data don't forget to set cookie
 	response, err := m.client.NewRequest().SetContext(ctx).
 		SetBody(m.storage.Get()).SetCookie(&http.Cookie{
 		Name:  "session_id",
-		Value: config.CurrentUser.SessionID,
+		Value: auth.CurrentUser.SessionID,
 	}).Post("https://" + config.GetConfig().ServerIP + Endpoint)
 	if err != nil {
 		return err
 	}
+
+	// Check if user is unauthorized
 	if response.StatusCode() == http.StatusUnauthorized {
-		pass, err_ := keyring.Get(config.ServiceName, config.CurrentUser.Username)
+		// If so, try to get pass from keyring
+		pass, err_ := keyring.Get(config.ServiceName, auth.CurrentUser.Username)
 		if err_ != nil {
 			return err_
 		}
-		err_ = m.SignIn(ctx, config.CurrentUser.Username, pass)
+
+		// And sign in again
+		err_ = m.SignIn(ctx, auth.CurrentUser.Username, pass)
 		if err_ != nil {
 			return err_
 		}
 	}
 
+	// Check if response is empty
 	if response.StatusCode() == http.StatusNoContent {
 		return nil
 	}
 
+	// If not, unmarshal and swap data
 	var serverData []models.DataWrapper
 	body := response.Body()
 	if len(body) == 0 {
 		return nil
 	}
-	// check fi body is empty or not
 	if err = json.Unmarshal(body, &serverData); err != nil {
 		if err.Error() == "EOF" {
 			serverData = nil
@@ -167,24 +144,22 @@ func (m *mediator) Sync(ctx context.Context) error {
 	return nil
 }
 
-func (m *mediator) createUserSessionFiles() error {
-	// create session_id file
-	file, err := os.Create(config.TempDir + "/" + config.SessionFile)
-	if err != nil {
-		return err
+func setCookies(cookie []*http.Cookie, username string) error {
+	// Read cookie from response
+	if len(cookie) == 0 {
+		return fmt.Errorf("failed to get cookie")
 	}
-	defer func(file *os.File) {
-		err = file.Close()
-		if err != nil {
-			log.Err(err).Msg("failed to close file" + config.SessionFile)
-			return
-		}
-	}(file)
 
-	// write session_id to file
-	_, err = file.WriteString(config.CurrentUser.SessionID + "\n" + config.CurrentUser.Username)
-	if err != nil {
-		return err
+	// Loop through cookies and the one with session_id
+	for _, c := range cookie {
+		if c.Name == "session_id" {
+			if c.Value == "" {
+				return fmt.Errorf("failed to get cookie")
+			}
+			auth.CurrentUser.Username = username
+			auth.CurrentUser.SessionID = c.Value
+			return nil
+		}
 	}
-	return nil
+	return fmt.Errorf("failed to get cookie")
 }
